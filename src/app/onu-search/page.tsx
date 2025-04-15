@@ -36,6 +36,8 @@ interface OnuData {
       tx_power: number
       temperature: number
       voltage: number
+      p_rx_power: string
+      p_tx_power: string
     }
   }>
 }
@@ -83,7 +85,6 @@ export default function OnuSearch() {
       setIsLoading(false)
     }
   }
-
   return (
     <div className="min-h-screen gradient-bg">
       <div className="absolute inset-0 overflow-hidden">
@@ -260,19 +261,45 @@ export default function OnuSearch() {
                 {onuData.data[0].onu_signal && (
                   <div>
                     <h3 className="text-gray-600 dark:text-gray-400 text-sm mb-4">Sinal</h3>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
                       <div className="p-6 rounded-2xl bg-gray-100/50 dark:bg-white/5 border border-gray-200/50 dark:border-white/5 flex flex-col items-center">
                         <div className="w-12 h-12 rounded-full bg-gray-200/70 dark:bg-white/10 flex items-center justify-center mb-4">
                           <Signal className="h-6 w-6 text-green-500" />
                         </div>
                         <div className="text-center">
-                          <p className="text-gray-600 dark:text-gray-400 text-sm mb-1">Potência RX</p>
+                          <p className="text-gray-600 dark:text-gray-400 text-sm mb-1">Potência OLT RX</p>
+                          <p className="text-2xl font-light text-gray-900 dark:text-white">
+                            {Number(onuData.data[0].onu_signal.p_rx_power).toFixed(2)} dBm
+                          </p>
+                        </div>
+                        <div className="w-full mt-4">
+                          {Number(onuData.data[0].onu_signal.p_rx_power) > -23 ? (
+                            <div className="signal-indicator signal-good"></div>
+                          ) : Number(onuData.data[0].onu_signal.p_rx_power) > -26 ? (
+                            <div className="signal-indicator signal-medium"></div>
+                          ) : (
+                            <div className="signal-indicator signal-poor"></div>
+                          )}
+                        </div>
+                      </div>
+                      <div className="p-6 rounded-2xl bg-gray-100/50 dark:bg-white/5 border border-gray-200/50 dark:border-white/5 flex flex-col items-center">
+                        <div className="w-12 h-12 rounded-full bg-gray-200/70 dark:bg-white/10 flex items-center justify-center mb-4">
+                          <Signal className="h-6 w-6 text-green-500" />
+                        </div>
+                        <div className="text-center">
+                          <p className="text-gray-600 dark:text-gray-400 text-sm mb-1">Potência ONU RX</p>
                           <p className="text-2xl font-light text-gray-900 dark:text-white">
                             {Number(onuData.data[0].onu_signal.rx_power).toFixed(2)} dBm
                           </p>
                         </div>
                         <div className="w-full mt-4">
-                          <div className="signal-indicator signal-good"></div>
+                          {Number(onuData.data[0].onu_signal.rx_power) > -23 ? (
+                            <div className="signal-indicator signal-good"></div>
+                          ) : Number(onuData.data[0].onu_signal.rx_power) > -26 ? (
+                            <div className="signal-indicator signal-medium"></div>
+                          ) : (
+                            <div className="signal-indicator signal-poor"></div>
+                          )}
                         </div>
                       </div>
 
@@ -281,7 +308,7 @@ export default function OnuSearch() {
                           <Signal className="h-6 w-6 text-green-500" />
                         </div>
                         <div className="text-center">
-                          <p className="text-gray-600 dark:text-gray-400 text-sm mb-1">Potência TX</p>
+                          <p className="text-gray-600 dark:text-gray-400 text-sm mb-1">Potência ONU TX</p>
                           <p className="text-2xl font-light text-gray-900 dark:text-white">
                             {Number(onuData.data[0].onu_signal.tx_power).toFixed(2)} dBm
                           </p>
