@@ -1,15 +1,15 @@
-/** @type {import('next').NextConfig} */
-const nextConfig = {
-  output: 'standalone',
-  basePath: '/onu',
+import type { NextConfig } from "next";
+
+const nextConfig: NextConfig = {
+  // output: 'standalone',
   async rewrites() {
     return [
       {
-        source: '/onu/api/:path*',
-        destination: '/api/:path*',
+        source: '/onu/:path*',
+        destination: '/:path*',
       },
     ]
   },
 }
 
-module.exports = nextConfig
+export default nextConfig
