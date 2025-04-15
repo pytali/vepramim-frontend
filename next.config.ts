@@ -1,8 +1,15 @@
-import type { NextConfig } from "next";
-
-const nextConfig: NextConfig = {
+/** @type {import('next').NextConfig} */
+const nextConfig = {
   output: 'standalone',
-  reactStrictMode: true,
-};
+  basePath: '/onu',
+  async rewrites() {
+    return [
+      {
+        source: '/onu/api/:path*',
+        destination: '/api/:path*',
+      },
+    ]
+  },
+}
 
-export default nextConfig;
+module.exports = nextConfig

@@ -6,6 +6,9 @@ services:
     image: vepramim-frontend:production
     container_name: vepramim-frontend
     restart: unless-stopped
+    # dns:
+    #   - 172.30.0.254
+    #   - 172.30.0.252
     environment:
       - NODE_ENV=production
       - PORT=3000

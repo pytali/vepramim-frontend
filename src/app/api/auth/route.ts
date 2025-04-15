@@ -13,8 +13,8 @@ export async function POST(request: Request) {
     if (!username || !password) {
       return NextResponse.json({ message: "Usuário e senha são obrigatórios" }, { status: 400 })
     }
-    if(username === "dev" && process.env.NODE_ENV === "production") {
-        return NextResponse.json({ message: "Usuário e senha inválidos" }, { status: 401 })
+    if (username === "dev" && process.env.NODE_ENV === "production") {
+      return NextResponse.json({ message: "Usuário e senha inválidos" }, { status: 401 })
     }
 
 

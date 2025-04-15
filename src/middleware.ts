@@ -3,10 +3,10 @@ import type { NextRequest } from "next/server"
 import { AUTH_COOKIE_NAME, REFRESH_COOKIE_NAME } from "./lib/auth"
 
 // Rotas que requerem autenticação
-const protectedRoutes = ["/dashboard", "/onu-search"]
+const protectedRoutes = ["/onu/dashboard", "/onu/onu-search"]
 
 // Rotas públicas
-const publicRoutes = ["/"]
+const publicRoutes = ["/onu"]
 
 export function middleware(request: NextRequest) {
     const { pathname } = request.nextUrl
@@ -27,18 +27,18 @@ export function middleware(request: NextRequest) {
 
         if (refreshToken) {
             // Se houver um refresh token, redirecionar para uma página que tentará atualizar o token
-            const url = new URL("/api/auth/refresh", request.url)
+            const url = new URL("/onu/api/auth/refresh", request.url)
             url.searchParams.set("redirect", pathname)
             return NextResponse.redirect(url)
         }
 
-        const url = new URL("/", request.url)
+        const url = new URL("/onu", request.url)
         return NextResponse.redirect(url)
     }
 
     // Se for uma rota pública e houver token, redirecionar para o dashboard
-    if (isPublicRoute && token && pathname === "/") {
-        const url = new URL("/dashboard", request.url)
+    if (isPublicRoute && token && pathname === "/onu") {
+        const url = new URL("/onu/dashboard", request.url)
         return NextResponse.redirect(url)
     }
 
@@ -47,6 +47,6 @@ export function middleware(request: NextRequest) {
 
 // Configurar o middleware para ser executado apenas nas rotas especificadas
 export const config = {
-    matcher: ["/dashboard", "/onu-search", "/"]
+    matcher: ["/onu/dashboard", "/onu/onu-search", "/onu"]
 }
 
