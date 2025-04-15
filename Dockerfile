@@ -34,7 +34,7 @@ COPY --from=builder /app/.next/static ./.next/static
 
 # Definir NODE_ENV como production
 ENV NODE_ENV=production
-ENV PORT=3000
+ENV PORT=3002
 
 # Mudar propriedade dos arquivos para o usuário nextjs
 RUN chown -R nextjs:nodejs /app
@@ -43,7 +43,7 @@ RUN chown -R nextjs:nodejs /app
 USER nextjs
 
 # Expor porta
-EXPOSE 3000
+EXPOSE 3002
 
 # Comando para iniciar a aplicação
 CMD ["node", "server.js"] 

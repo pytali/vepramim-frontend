@@ -6,16 +6,16 @@ services:
     image: vepramim-frontend:production
     container_name: vepramim-frontend
     restart: unless-stopped
-    # dns:
-    #   - 172.30.0.254
-    #   - 172.30.0.252
+    dns:
+      - 172.30.0.254
+      - 172.30.0.252
     environment:
       - NODE_ENV=production
-      - PORT=3000
+      - PORT=3002
     ports:
-      - "3000:3000"
+      - "3002:3002"
     healthcheck:
-      test: ["CMD", "wget", "--spider", "http://localhost:3000"]
+      test: ["CMD", "wget", "--spider", "http://localhost:3002"]
       interval: 30s
       timeout: 10s
       retries: 3
