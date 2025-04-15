@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -10,9 +10,13 @@ import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Search, ArrowLeft, Signal, Thermometer, Zap } from "lucide-react"
 import { Logo } from "@/components/logo"
+import { useOLTStore } from "@/store/olts"
 
 interface OnuData {
   data: Array<{
+    olt_id: string
+    pon_id: string
+    onu_id: string
     onu_name: string
     onu_description: string
     onu_type: string
@@ -42,6 +46,13 @@ export default function OnuSearch() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
   const [onuData, setOnuData] = useState<OnuData | null>(null)
+  const { olts, fetchOLTs } = useOLTStore()
+
+  useEffect(() => {
+    if (olts.length === 0) {
+      fetchOLTs()
+    }
+  }, [olts.length, fetchOLTs])
 
   async function handleSearch(e: React.FormEvent) {
     e.preventDefault()
@@ -155,27 +166,27 @@ export default function OnuSearch() {
                           </span>
                         </div>
                         <div className="flex p-3 rounded-xl bg-gray-100/50 dark:bg-white/5 border border-gray-200/50 dark:border-white/5">
-                          <span className="text-gray-600 dark:text-gray-400 min-w-[120px] font-medium">Descrição</span>
+                          <span className="text-gray-600 dark:text-gray-400 min-w-[120px] font-medium">OLT</span>
                           <span className="text-gray-900 dark:text-white pl-4 flex-1 text-right break-words">
-                            {onuData.data[0].onu_description}
+                            {olts.find((olt) => olt.device_id === onuData.data[0].olt_id)?.device_name}
                           </span>
                         </div>
                         <div className="flex p-3 rounded-xl bg-gray-100/50 dark:bg-white/5 border border-gray-200/50 dark:border-white/5">
-                          <span className="text-gray-600 dark:text-gray-400 min-w-[120px] font-medium">Tipo</span>
+                          <span className="text-gray-600 dark:text-gray-400 min-w-[120px] font-medium">PON</span>
+                          <span className="text-gray-900 dark:text-white pl-4 flex-1 text-right break-words">
+                            {`Slot ${onuData.data[0].pon_id.split("-")[2]} Pon ${onuData.data[0].pon_id.split("-")[3]}`}
+                          </span>
+                        </div>
+                        <div className="flex p-3 rounded-xl bg-gray-100/50 dark:bg-white/5 border border-gray-200/50 dark:border-white/5">
+                          <span className="text-gray-600 dark:text-gray-400 min-w-[120px] font-medium">Onu ID</span>
+                          <span className="text-gray-900 dark:text-white pl-4 flex-1 text-right break-words">
+                            {onuData.data[0].onu_id}
+                          </span>
+                        </div>
+                        <div className="flex p-3 rounded-xl bg-gray-100/50 dark:bg-white/5 border border-gray-200/50 dark:border-white/5">
+                          <span className="text-gray-600 dark:text-gray-400 min-w-[120px] font-medium">Onu Type</span>
                           <span className="text-gray-900 dark:text-white pl-4 flex-1 text-right break-words">
                             {onuData.data[0].onu_type}
-                          </span>
-                        </div>
-                        <div className="flex p-3 rounded-xl bg-gray-100/50 dark:bg-white/5 border border-gray-200/50 dark:border-white/5">
-                          <span className="text-gray-600 dark:text-gray-400 min-w-[120px] font-medium">IP</span>
-                          <span className="text-gray-900 dark:text-white pl-4 flex-1 text-right break-words">
-                            {onuData.data[0].onu_ip}
-                          </span>
-                        </div>
-                        <div className="flex p-3 rounded-xl bg-gray-100/50 dark:bg-white/5 border border-gray-200/50 dark:border-white/5">
-                          <span className="text-gray-600 dark:text-gray-400 min-w-[120px] font-medium">MAC</span>
-                          <span className="text-gray-900 dark:text-white pl-4 flex-1 text-right break-words">
-                            {onuData.data[0].onu_mac}
                           </span>
                         </div>
                         <div className="flex p-3 rounded-xl bg-gray-100/50 dark:bg-white/5 border border-gray-200/50 dark:border-white/5">
