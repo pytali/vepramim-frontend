@@ -11,6 +11,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Search, ArrowLeft, Signal, Thermometer, Zap } from "lucide-react"
 import { Logo } from "@/components/logo"
 import { useOLTStore } from "@/store/olts"
+import { Toast, ToastContainer } from "@/components/ui/toast"
 
 interface OnuData {
   data: Array<{
@@ -32,10 +33,10 @@ interface OnuData {
       last_on_time?: string
     }
     onu_signal?: {
-      rx_power: number
-      tx_power: number
-      temperature: number
-      voltage: number
+      rx_power: string
+      tx_power: string
+      temperature: string
+      voltage: string
       p_rx_power: string
       p_tx_power: string
     }
@@ -48,7 +49,47 @@ export default function OnuSearch() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
   const [onuData, setOnuData] = useState<OnuData | null>(null)
+  const [showToast, setShowToast] = useState(false)
+  const [toastMessage, setToastMessage] = useState("")
+  const [toastType, setToastType] = useState<"success" | "error">("success")
+  const [isCopying, setIsCopying] = useState(false)
   const { olts, fetchOLTs } = useOLTStore()
+
+  const handleCopyData = () => {
+    if (!onuData?.data?.[0]) return
+
+    setIsCopying(true)
+    const data = onuData.data[0]
+    const oltName = olts.find((olt) => olt.device_id === data.olt_id)?.device_name || ''
+    const [, , slot, pon] = data.pon_id.split("-")
+
+    const textToCopy = `SN: ${serialNumber}
+Sinal ONU RX: ${Number(data.onu_signal?.rx_power).toFixed(2) || '--'} dBm
+Sinal OLT RX: ${Number(data.onu_signal?.p_rx_power).toFixed(2) || '--'} dBm
+OLT: ${oltName}
+Slot: ${slot}
+PON: ${pon}
+Status: ${data.onu_state?.oper_state || ''}
+Modelo ONU/ONT: ${data.onu_type || ''}`
+
+    navigator.clipboard.writeText(textToCopy)
+      .then(() => {
+        setToastMessage("Dados copiados com sucesso!")
+        setToastType("success")
+        setShowToast(true)
+      })
+      .catch((err) => {
+        console.error("Erro ao copiar dados:", err)
+        setToastMessage("Erro ao copiar dados")
+        setToastType("error")
+        setShowToast(true)
+      })
+      .finally(() => {
+        setTimeout(() => {
+          setIsCopying(false)
+        }, 200)
+      })
+  }
 
   useEffect(() => {
     if (olts.length === 0) {
@@ -130,7 +171,7 @@ export default function OnuSearch() {
                 <Button
                   type="submit"
                   disabled={isLoading}
-                  className="bg-gray-900 hover:bg-gray-800 text-white dark:bg-white/10 dark:hover:bg-white/20 dark:text-white dark:border dark:border-white/20 rounded-xl px-6"
+                  className="bg-gray-900 hover:bg-gray-800 text-white dark:bg-white/10 dark:hover:bg-white/20 dark:text-white dark:border dark:border-white/20 rounded-xl px-4 h-10 flex items-center justify-center self-center my-auto"
                 >
                   {isLoading ? "Buscando..." : <Search className="h-4 w-4 mr-2" />}
                   {isLoading ? "" : "Buscar"}
@@ -329,7 +370,13 @@ export default function OnuSearch() {
                           </p>
                         </div>
                         <div className="w-full mt-4">
-                          <div className="signal-indicator signal-medium"></div>
+                          {Number(onuData.data[0].onu_signal.temperature) > 50 ? (
+                            <div className="signal-indicator signal-poor"></div>
+                          ) : Number(onuData.data[0].onu_signal.temperature) > 40 ? (
+                            <div className="signal-indicator signal-medium"></div>
+                          ) : (
+                            <div className="signal-indicator signal-good"></div>
+                          )}
                         </div>
                       </div>
 
@@ -357,6 +404,42 @@ export default function OnuSearch() {
           </div>
         )}
       </main>
+
+      {onuData && onuData.data && onuData.data.length > 0 && (
+        <button
+          onClick={handleCopyData}
+          disabled={isCopying}
+          className={`fixed bottom-8 right-8 bg-gray-900 hover:bg-gray-800 text-white dark:bg-white/10 dark:hover:bg-white/20 dark:text-white dark:border dark:border-white/20 rounded-full p-4 shadow-lg flex items-center gap-2 transition-transform duration-200 ${isCopying ? 'scale-95' : ''
+            }`}
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className={`transition-transform duration-200 ${isCopying ? 'scale-90' : ''}`}
+          >
+            <rect width="14" height="14" x="8" y="8" rx="2" ry="2" />
+            <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
+          </svg>
+          Copiar
+        </button>
+      )}
+
+      <ToastContainer>
+        {showToast && (
+          <Toast
+            message={toastMessage}
+            type={toastType}
+            onClose={() => setShowToast(false)}
+          />
+        )}
+      </ToastContainer>
     </div>
   )
 }

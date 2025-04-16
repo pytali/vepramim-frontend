@@ -180,7 +180,7 @@
 }
 
 .signal-good::after {
-  width: 90%;
+  width: 100%;
 }
 
 .signal-medium::after {
