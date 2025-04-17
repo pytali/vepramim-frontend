@@ -40,7 +40,7 @@ export default function InformacoesChamado({ data, onChange }: Props) {
                             id="protocolo"
                             type="text"
                             placeholder="Digite o protocolo"
-                            value={data.protocolo}
+                            value={data.protocolo || ""}
                             onChange={handleChange}
                             className="bg-white/50 dark:bg-background/30 border-gray-300 dark:border-gray-700 focus:border-gray-400 dark:focus:border-gray-500 h-12 rounded-xl"
                         />
@@ -70,8 +70,9 @@ export default function InformacoesChamado({ data, onChange }: Props) {
                             Status
                         </Label>
                         <Select
-                            value={data.status}
+                            value={data.status || "ABERTO"}
                             onValueChange={(value) => handleSelectChange(value, 'status')}
+                            defaultValue="ABERTO"
                         >
                             <SelectTrigger className="bg-white/50 dark:bg-background/30 border-gray-300 dark:border-gray-700 focus:border-gray-400 dark:focus:border-gray-500 h-12 rounded-xl">
                                 <SelectValue placeholder="Selecione o status" />

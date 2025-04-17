@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { cn } from '@/lib/utils';
+import { DatePicker } from "@/components/ui/date-picker";
 
 interface Props {
     data: AtendimentoInfo;
@@ -174,12 +175,18 @@ export default function InformacoesAtendimento({ data, onChange }: Props) {
                         <Label htmlFor="dataAtendimento" className={labelClasses}>
                             Data do Atendimento
                         </Label>
-                        <Input
+                        <DatePicker
                             id="dataAtendimento"
-                            type="date"
-                            value={data.dataAtendimento}
-                            onChange={handleChange}
-                            onBlur={handleBlur}
+                            date={data.dataAtendimento ? new Date(data.dataAtendimento) : undefined}
+                            onChange={(date) => {
+                                handleChange({
+                                    target: {
+                                        id: "dataAtendimento",
+                                        value: date ? date.toISOString().split('T')[0] : ""
+                                    }
+                                } as React.ChangeEvent<HTMLInputElement>);
+                            }}
+                            onBlur={() => handleBlur({ target: { id: "dataAtendimento" } } as React.FocusEvent<HTMLInputElement>)}
                             className={cn(inputClasses)}
                         />
                         {touched.dataAtendimento && errors.dataAtendimento && (

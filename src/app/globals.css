@@ -3,11 +3,75 @@
 /*@import "tailwindcss/preflight";*/
 @tailwind utilities;
 
+/* Solução de rolagem - início */
+html, body {
+  overflow: auto !important;
+  overflow-x: auto !important;
+  position: static !important;
+  width: auto !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  padding-right: 0 !important;
+  top: auto !important;
+  left: auto !important;
+  right: auto !important;
+  bottom: auto !important;
+  height: auto !important;
+}
+
+body[style*="overflow"] {
+  overflow: auto !important;
+  overflow-x: auto !important;
+}
+
+body[style*="padding-right"] {
+  padding-right: 0 !important;
+}
+
+body[style*="position: fixed"] {
+  position: static !important;
+}
+/* Solução de rolagem - fim */
+
+/* Estilos para a barra de rolagem dos dropdowns */
+[data-radix-select-viewport] {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(155, 155, 155, 0.5) transparent;
+}
+
+[data-radix-select-viewport]::-webkit-scrollbar {
+  width: 6px;
+}
+
+[data-radix-select-viewport]::-webkit-scrollbar-track {
+  background: transparent;
+  margin: 3px;
+}
+
+[data-radix-select-viewport]::-webkit-scrollbar-thumb {
+  background-color: rgba(155, 155, 155, 0.5);
+  border-radius: 20px;
+  border: 2px solid transparent;
+}
+
+.dark [data-radix-select-viewport]::-webkit-scrollbar-thumb {
+  background-color: rgba(200, 200, 200, 0.3);
+}
+
+[data-radix-select-viewport]::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(155, 155, 155, 0.7);
+}
+
+.dark [data-radix-select-viewport]::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(200, 200, 200, 0.5);
+}
+
 [role="button"], button {
   cursor: pointer;
 }
 
-@custom-variant dark (&:is(.dark *));
+/* Remover regra não reconhecida */
+/* @custom-variant dark (&:is(.dark *)); */
 
 @theme inline {
   --color-background: var(--background);
@@ -127,7 +191,29 @@
   }
 }
 
+/* Corrigir o problema de backdrop-filter no Select */
+[data-radix-select-content] {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
 
+[data-radix-select-portal] {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+[data-radix-select-viewport] {
+  background-color: white !important;
+}
+
+.dark [data-radix-select-viewport] {
+  background-color: #1e1e2f !important;
+}
+
+/* Prevenir qualquer modificação no background */
+body::before {
+  content: none !important;
+}
 
 .glow-text {
   text-shadow: 0 0 15px rgba(255, 255, 255, 0.5);

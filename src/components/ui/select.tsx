@@ -6,10 +6,11 @@ import { Check, ChevronDown } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 
+// Exporta o Root component diretamente
 const Select = SelectPrimitive.Root
 
 const SelectTrigger = React.forwardRef<
-    React.ElementRef<typeof SelectPrimitive.Trigger>,
+    React.ComponentRef<typeof SelectPrimitive.Trigger>,
     React.ComponentPropsWithoutRef<typeof SelectPrimitive.Trigger>
 >(({ className, children, ...props }, ref) => {
     const [mounted, setMounted] = React.useState(false)
@@ -52,11 +53,59 @@ const SelectTrigger = React.forwardRef<
 })
 SelectTrigger.displayName = SelectPrimitive.Trigger.displayName
 
+// Implementação personalizada do Content para evitar efeitos no background
 const SelectContent = React.forwardRef<
-    React.ElementRef<typeof SelectPrimitive.Content>,
+    React.ComponentRef<typeof SelectPrimitive.Content>,
     React.ComponentPropsWithoutRef<typeof SelectPrimitive.Content>
 >(({ className, children, position = "popper", ...props }, ref) => {
     const [mounted, setMounted] = React.useState(false)
+
+    // Evita bloqueio de rolagem
+    React.useEffect(() => {
+        if (mounted) {
+            // Guarda o valor original de overflow
+            const originalOverflow = window.getComputedStyle(document.body).overflow
+            const originalPaddingRight = window.getComputedStyle(document.body).paddingRight
+            const originalPosition = window.getComputedStyle(document.body).position
+
+            // Função para corrigir rolagem
+            const fixScroll = () => {
+                if (document.body.style.overflow === 'hidden') {
+                    document.body.style.overflow = 'auto'
+                    document.body.style.paddingRight = '0'
+                }
+                if (document.body.style.position === 'fixed') {
+                    document.body.style.position = 'static'
+                }
+            }
+
+            // Observer para detectar mudanças de estilo no body e corrigir
+            const observer = new MutationObserver(() => {
+                fixScroll()
+            })
+
+            // Observa mudanças nos atributos de estilo do body
+            observer.observe(document.body, {
+                attributes: true,
+                attributeFilter: ['style']
+            })
+
+            // Corrige imediatamente caso já esteja com scroll bloqueado
+            fixScroll()
+
+            // Intervalo para garantir que a rolagem não seja bloqueada
+            const interval = setInterval(fixScroll, 100)
+
+            return () => {
+                observer.disconnect()
+                clearInterval(interval)
+                // Restaura valores originais ao desmontar
+                document.body.style.overflow = originalOverflow
+                document.body.style.paddingRight = originalPaddingRight
+                document.body.style.position = originalPosition
+            }
+        }
+    }, [mounted])
 
     React.useEffect(() => {
         setMounted(true)
@@ -66,12 +115,13 @@ const SelectContent = React.forwardRef<
         return null
     }
 
+    // Implementação personalizada para evitar efeitos no background
     return (
         <SelectPrimitive.Portal>
             <SelectPrimitive.Content
                 ref={ref}
                 className={cn(
-                    "absolute z-[9999] min-w-[8rem] overflow-hidden rounded-md border bg-popover text-popover-foreground shadow-md data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2",
+                    "absolute z-[9999] min-w-[8rem] overflow-hidden rounded-md border bg-white dark:bg-gray-900 text-popover-foreground shadow-md",
                     position === "popper" &&
                     "data-[side=bottom]:translate-y-1 data-[side=left]:-translate-x-1 data-[side=right]:translate-x-1 data-[side=top]:-translate-y-1",
                     className
@@ -79,16 +129,30 @@ const SelectContent = React.forwardRef<
                 position={position}
                 sideOffset={2}
                 style={{
-                    position: 'fixed'
+                    backdropFilter: 'none',
+                    WebkitBackdropFilter: 'none',
+                    maxHeight: 'var(--radix-popper-available-height)'
+                }}
+
+                onCloseAutoFocus={(e) => {
+                    e.preventDefault();
+                    if (props.onCloseAutoFocus) {
+                        props.onCloseAutoFocus(e);
+                    }
                 }}
                 {...props}
             >
                 <SelectPrimitive.Viewport
                     className={cn(
-                        "p-1",
-                        position === "popper" &&
-                        "h-[var(--radix-select-trigger-height)] w-full min-w-[var(--radix-select-trigger-width)]"
+                        "p-1 overflow-y-auto scrollbar-thin",
+                        position === "popper"
+                            ? "h-[var(--radix-select-trigger-height)] max-h-[320px] w-full min-w-[var(--radix-select-trigger-width)]"
+                            : "max-h-[320px]"
                     )}
+                    style={{
+                        maxHeight: "calc(var(--radix-popper-available-height, 320px) - 10px)",
+                        overflowY: "auto"
+                    }}
                 >
                     {children}
                 </SelectPrimitive.Viewport>
@@ -99,7 +163,7 @@ const SelectContent = React.forwardRef<
 SelectContent.displayName = SelectPrimitive.Content.displayName
 
 const SelectItem = React.forwardRef<
-    React.ElementRef<typeof SelectPrimitive.Item>,
+    React.ComponentRef<typeof SelectPrimitive.Item>,
     React.ComponentPropsWithoutRef<typeof SelectPrimitive.Item>
 >(({ className, children, ...props }, ref) => (
     <SelectPrimitive.Item
