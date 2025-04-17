@@ -3,7 +3,7 @@
 import { useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { Search, Server, Wifi, Activity, LogOut } from "lucide-react"
+import { Search, Server, Wifi, Activity, LogOut, Plus, ClipboardPenLine } from "lucide-react"
 import { Logo } from "@/components/logo"
 import { useOLTStore } from "@/store/olts"
 
@@ -61,7 +61,7 @@ export default function Dashboard() {
         <h2 className="text-3xl font-light text-gray-900 dark:text-white mb-2">Dashboard</h2>
         <p className="text-gray-600 dark:text-gray-400 mb-12">Visão geral do sistema</p>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <div className="glass-card rounded-2xl p-6 transition-all duration-300 hover:translate-y-[-5px]">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-xl font-light text-gray-900 dark:text-white">OLTs</h3>
@@ -89,7 +89,26 @@ export default function Dashboard() {
                 Pesquisar ONU
               </Button>
             </div>
-            <p className="text-gray-600 dark:text-gray-400 text-sm">Busque ONUs por número de série</p>
+            <p className="text-gray-600 dark:text-gray-400 text-sm">Geração de atendimentos</p>
+          </div>
+
+          <div className="glass-card rounded-2xl p-6 transition-all duration-300 hover:translate-y-[-5px]">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-light text-gray-900 dark:text-white">Atendimentos</h3>
+              <div className="w-10 h-10 rounded-full flex items-center justify-center bg-gray-200/70 dark:bg-white/10">
+                <ClipboardPenLine className="h-5 w-5 text-gray-700 dark:text-white" />
+              </div>
+            </div>
+            <div className="mb-4">
+              <Button
+                className="bg-gray-900 hover:bg-gray-800 text-white dark:bg-white/10 dark:hover:bg-white/20 dark:text-white dark:border dark:border-white/20 rounded-xl"
+                onClick={() => router.push("/atendimentos")}
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Gerar atendimento
+              </Button>
+            </div>
+            <p className="text-gray-600 dark:text-gray-400 text-sm">Geração de atendimentos</p>
           </div>
 
           <div className="glass-card rounded-2xl p-6 transition-all duration-300 hover:translate-y-[-5px]">

@@ -64,8 +64,8 @@ export default function OnuSearch() {
     const [, , slot, pon] = data.pon_id.split("-")
 
     const textToCopy = `SN: ${serialNumber}
-Sinal ONU RX: ${Number(data.onu_signal?.rx_power).toFixed(2) || '--'} dBm
-Sinal OLT RX: ${Number(data.onu_signal?.p_rx_power).toFixed(2) || '--'} dBm
+Sinal ONU RX: ${data.onu_signal?.rx_power && !isNaN(Number(data.onu_signal.rx_power)) ? Number(data.onu_signal.rx_power).toFixed(2) : '--'} dBm
+Sinal OLT RX: ${data.onu_signal?.p_rx_power && !isNaN(Number(data.onu_signal.p_rx_power)) ? Number(data.onu_signal.p_rx_power).toFixed(2) : '--'} dBm
 OLT: ${oltName}
 Slot: ${slot}
 PON: ${pon}
