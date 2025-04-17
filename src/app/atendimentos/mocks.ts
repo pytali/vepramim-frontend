@@ -29,6 +29,8 @@ export const mockAtendimento: AtendimentoCompleto = {
     },
     chamadoInfo: {
         motivoChamado: 'Lentidão na conexão',
+        status: 'PENDENTE',
+        protocolo: 'CHAMADO123',
         dataReservada: '2024-03-21',
         localizacao: 'Rua Exemplo, 123',
         alarmeEquipamento: 'LINK LOSS',
