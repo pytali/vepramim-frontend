@@ -8,7 +8,7 @@ import { Logo } from '@/components/logo';
 import { Toast, ToastContainer } from '@/components/ui/toast';
 import InformacoesAtendimento from './components/sections/InformacoesAtendimento';
 import InformacoesCliente from './components/sections/InformacoesCliente';
-import InformacoesConcentrador from './components/sections/InformacoesConcentrador';
+import InformacoesCPE from './components/sections/InformacoesCPE';
 import InformacoesChamado from './components/sections/InformacoesChamado';
 import MetodosAplicados from './components/sections/MetodosAplicados';
 import { useAtendimentoPersistence } from './hooks/useAtendimentoPersistence';
@@ -36,10 +36,10 @@ export default function AtendimentoPage() {
         }));
     };
 
-    const handleConcentradorInfoChange = (data: typeof atendimento.concentradorInfo) => {
+    const handleConcentradorInfoChange = (data: typeof atendimento.cpeInfo) => {
         setAtendimento((prev) => ({
             ...prev,
-            concentradorInfo: data,
+            cpeInfo: data,
         }));
     };
 
@@ -135,8 +135,8 @@ export default function AtendimentoPage() {
                     onChange={handleClienteInfoChange}
                 />
 
-                <InformacoesConcentrador
-                    data={atendimento.concentradorInfo}
+                <InformacoesCPE
+                    data={atendimento.cpeInfo}
                     onChange={handleConcentradorInfoChange}
                 />
 

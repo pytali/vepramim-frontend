@@ -20,18 +20,18 @@ export const mockAtendimento: AtendimentoCompleto = {
         senhaPppoe: 'senha123',
         redeLan: 'ONT ZTE',
     },
-    concentradorInfo: {
+    cpeInfo: {
         olt: 'OLT-001',
         slot: 1,
         pon: 8,
-        macEquipamento: '00:11:22:33:44:55',
+        sn: 'FHTT11112222',
         sinalFibra: -25,
+        status: 'UP',
     },
     chamadoInfo: {
         motivoChamado: 'Lentidão na conexão',
         status: 'PENDENTE',
-        protocolo: 'CHAMADO123',
-        dataReservada: '2024-03-21',
+        dataReservada: new Date(Date.now() + 1000 * 60 * 60 * 24),
         localizacao: 'Rua Exemplo, 123',
         alarmeEquipamento: 'LINK LOSS',
         descricaoAtendimento: 'Cliente relatou lentidão na conexão. Realizado teste de velocidade e configurações do equipamento.',

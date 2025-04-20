@@ -1,15 +1,16 @@
 'use client';
 
-import { ConcentradorInfo } from '../../types';
+import { CPEInfo } from '../../types';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface Props {
-    data: ConcentradorInfo;
-    onChange: (data: ConcentradorInfo) => void;
+    data: CPEInfo;
+    onChange: (data: CPEInfo) => void;
 }
 
-export default function InformacoesConcentrador({ data, onChange }: Props) {
+export default function InformacoesCPE({ data, onChange }: Props) {
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { id, value } = e.target;
         const numericFields = ['slot', 'pon', 'sinalFibra'];
@@ -20,9 +21,11 @@ export default function InformacoesConcentrador({ data, onChange }: Props) {
         });
     };
 
+    const statusOptions = ['UP', 'LINK LOSS', 'DYNG GASP'];
+
     return (
         <div className="glass-card rounded-2xl p-6 mb-8">
-            <h2 className="text-xl font-light text-gray-900 dark:text-white mb-6">Informações do Concentrador</h2>
+            <h2 className="text-xl font-light text-gray-900 dark:text-white mb-6">Informações da CPE</h2>
 
             <form className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -69,14 +72,14 @@ export default function InformacoesConcentrador({ data, onChange }: Props) {
                     </div>
 
                     <div className="space-y-2">
-                        <Label htmlFor="macEquipamento" className="text-gray-700 dark:text-gray-300 text-sm">
-                            MAC do Equipamento
+                        <Label htmlFor="sn" className="text-gray-700 dark:text-gray-300 text-sm">
+                            SN do Equipamento
                         </Label>
                         <Input
-                            id="macEquipamento"
+                            id="sn"
                             type="text"
-                            placeholder="Digite o MAC do equipamento"
-                            value={data.macEquipamento}
+                            placeholder="Digite o SN do equipamento"
+                            value={data.sn}
                             onChange={handleChange}
                             className="bg-white/50 dark:bg-background/30 border-gray-300 dark:border-gray-700 focus:border-gray-400 dark:focus:border-gray-500 h-12 rounded-xl"
                         />
@@ -94,6 +97,26 @@ export default function InformacoesConcentrador({ data, onChange }: Props) {
                             onChange={handleChange}
                             className="bg-white/50 dark:bg-background/30 border-gray-300 dark:border-gray-700 focus:border-gray-400 dark:focus:border-gray-500 h-12 rounded-xl"
                         />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="status" className="text-gray-700 dark:text-gray-300 text-sm">
+                            Status
+                        </Label>
+                        <Select
+                            value={data.status}
+                            onValueChange={(value) => onChange({ ...data, status: value as CPEInfo['status'] })}
+                        >
+                            <SelectTrigger className="bg-white/50 dark:bg-background/30 border-gray-300 dark:border-gray-700 focus:border-gray-400 dark:focus:border-gray-500 h-12 rounded-xl">
+                                <SelectValue placeholder="Selecione o status" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {statusOptions.map((status) => (
+                                    <SelectItem key={status} value={status}>
+                                        {status}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
                     </div>
                 </div>
             </form>

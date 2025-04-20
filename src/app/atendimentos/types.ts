@@ -14,19 +14,19 @@ export type ClienteInfo = {
     redeLan: string;
 }
 
-export type ConcentradorInfo = {
+export type CPEInfo = {
     olt: string;
     slot: number;
     pon: number;
-    macEquipamento: string;
+    sn: string;
     sinalFibra: number;
+    status: 'UP' | 'LINK LOSS' | 'DYNG GASP';
 }
 
 export type ChamadoInfo = {
     status: 'PENDENTE' | 'CONCLUIDO';
-    protocolo: string;
     motivoChamado: string;
-    dataReservada: string;
+    dataReservada: Date;
     localizacao: string;
     alarmeEquipamento: string;
     descricaoAtendimento: string;
@@ -85,7 +85,7 @@ export type Rede5G = {
 export type AtendimentoCompleto = {
     atendimentoInfo: AtendimentoInfo;
     clienteInfo: ClienteInfo;
-    concentradorInfo: ConcentradorInfo;
+    cpeInfo: CPEInfo;
     chamadoInfo: ChamadoInfo;
     metodosGerais: MetodosGerais;
     rede2g: Rede2G;

@@ -3,7 +3,9 @@
 import { ChamadoInfo } from '../../types';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { DatePicker } from '@/components/ui/date-picker';
+import { useState } from 'react';
 
 interface Props {
     data: ChamadoInfo;
@@ -11,6 +13,8 @@ interface Props {
 }
 
 export default function InformacoesChamado({ data, onChange }: Props) {
+    const [isTextareaExpanded, setIsTextareaExpanded] = useState(false);
+
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { id, value } = e.target;
         onChange({
@@ -19,10 +23,11 @@ export default function InformacoesChamado({ data, onChange }: Props) {
         });
     };
 
-    const handleSelectChange = (value: string, field: keyof ChamadoInfo) => {
+    const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+        const { id } = e.target;
         onChange({
             ...data,
-            [field]: value,
+            [id]: e.target.value,
         });
     };
 
@@ -33,57 +38,76 @@ export default function InformacoesChamado({ data, onChange }: Props) {
             <form className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     <div className="space-y-2">
-                        <Label htmlFor="protocolo" className="text-gray-700 dark:text-gray-300 text-sm">
-                            Protocolo
+                        <Label htmlFor="motivoChamado" className="text-gray-700 dark:text-gray-300 text-sm">
+                            Motivo do Chamado
                         </Label>
                         <Input
-                            id="protocolo"
+                            id="motivoChamado"
                             type="text"
-                            placeholder="Digite o protocolo"
-                            value={data.protocolo || ""}
+                            placeholder="Digite o motivo do chamado"
+                            value={data.motivoChamado}
                             onChange={handleChange}
                             className="bg-white/50 dark:bg-background/30 border-gray-300 dark:border-gray-700 focus:border-gray-400 dark:focus:border-gray-500 h-12 rounded-xl"
                         />
                     </div>
 
                     <div className="space-y-2">
-                        <Label htmlFor="tipo" className="text-gray-700 dark:text-gray-300 text-sm">
-                            Tipo
+                        <Label htmlFor="dataReservada" className="text-gray-700 dark:text-gray-300 text-sm">
+                            Data Reservada
                         </Label>
-                        <Select
-                            value={data.motivoChamado}
-                            onValueChange={(value) => handleSelectChange(value, 'motivoChamado')}
-                        >
-                            <SelectTrigger className="bg-white/50 dark:bg-background/30 border-gray-300 dark:border-gray-700 focus:border-gray-400 dark:focus:border-gray-500 h-12 rounded-xl">
-                                <SelectValue placeholder="Selecione o tipo" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="INSTALACAO">Instalação</SelectItem>
-                                <SelectItem value="SUPORTE">Suporte</SelectItem>
-                                <SelectItem value="MANUTENCAO">Manutenção</SelectItem>
-                            </SelectContent>
-                        </Select>
+                        <DatePicker
+                            id="dataReservada"
+                            date={data.dataReservada ? new Date(data.dataReservada) : undefined}
+                            onChange={(date) => {
+                                handleChange({
+                                    target: {
+                                        id: "dataReservada",
+                                        value: date ? date.toISOString().split('T')[0] : ""
+                                    }
+                                } as React.ChangeEvent<HTMLInputElement>);
+                            }}
+                            onBlur={() => handleBlur({ target: { id: "dataReservada" } } as React.FocusEvent<HTMLInputElement>)}
+                            className="bg-white/50 dark:bg-background/30 border-gray-300 dark:border-gray-700 focus:border-gray-400 dark:focus:border-gray-500 h-12 rounded-xl"
+                        />
                     </div>
 
                     <div className="space-y-2">
-                        <Label htmlFor="status" className="text-gray-700 dark:text-gray-300 text-sm">
-                            Status
+                        <Label htmlFor="localizacao" className="text-gray-700 dark:text-gray-300 text-sm">
+                            Localização do Cliente
                         </Label>
-                        <Select
-                            value={data.status || "ABERTO"}
-                            onValueChange={(value) => handleSelectChange(value, 'status')}
-                            defaultValue="ABERTO"
-                        >
-                            <SelectTrigger className="bg-white/50 dark:bg-background/30 border-gray-300 dark:border-gray-700 focus:border-gray-400 dark:focus:border-gray-500 h-12 rounded-xl">
-                                <SelectValue placeholder="Selecione o status" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="ABERTO">Aberto</SelectItem>
-                                <SelectItem value="EM_ANDAMENTO">Em Andamento</SelectItem>
-                                <SelectItem value="CONCLUIDO">Concluído</SelectItem>
-                                <SelectItem value="CANCELADO">Cancelado</SelectItem>
-                            </SelectContent>
-                        </Select>
+                        <Input
+                            id="localizacao"
+                            type="text"
+                            className="bg-white/50 dark:bg-background/30 border-gray-300 dark:border-gray-700 focus:border-gray-400 dark:focus:border-gray-500 h-12 rounded-xl"
+                            placeholder="Digite a localização do cliente"
+                            value={data.localizacao}
+                            onChange={handleChange}
+                        />
+                    </div>
+                    <div className="space-y-2 col-span-full flex flex-col items-center">
+                        <Label htmlFor="descricaoAtendimento" className="text-gray-700 dark:text-gray-300 text-sm text-center">
+                            Descrição do Atendimento
+                        </Label>
+                        <Textarea
+                            //TODO Verificar bug no transition no navegador Safari
+                            id="descricaoAtendimento"
+                            className={`bg-white/50 dark:bg-background/30 border-gray-300 dark:border-gray-700 focus:border-gray-400 dark:focus:border-gray-500 w-full rounded-xl resize-none transition-all duration-500 ease-in-out ${isTextareaExpanded ? 'min-h-[200px]' : 'min-h-[45px]'}`}
+                            placeholder="Digite a descrição do atendimento"
+                            value={data.descricaoAtendimento}
+                            onFocus={() => setIsTextareaExpanded(true)}
+                            onBlur={(e: React.FocusEvent<HTMLTextAreaElement>) => {
+                                if (!e.target.value) {
+                                    setIsTextareaExpanded(false);
+                                }
+                                handleBlur({ target: { id: "descricaoAtendimento" } } as React.FocusEvent<HTMLInputElement>);
+                            }}
+                            onChange={(e) => handleChange({
+                                target: {
+                                    id: "descricaoAtendimento",
+                                    value: e.target.value
+                                }
+                            } as React.ChangeEvent<HTMLInputElement>)}
+                        />
                     </div>
                 </div>
             </form>

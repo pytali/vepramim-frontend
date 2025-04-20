@@ -33,9 +33,9 @@ CONTATO: ${atendimento.atendimentoInfo.telefone}
 TITULAR: ${atendimento.atendimentoInfo.titular}
 
 [INFORMAÇÕES DO CONCENTRADOR]
-OLT ${atendimento.concentradorInfo.olt} SLOT ${atendimento.concentradorInfo.slot} PON ${atendimento.concentradorInfo.pon}
-SINAL DA FIBRA: ${atendimento.concentradorInfo.sinalFibra}
-PON DO EQUIPAMENTO: ${atendimento.concentradorInfo.macEquipamento}
+OLT ${atendimento.cpeInfo.olt} SLOT ${atendimento.cpeInfo.slot} PON ${atendimento.cpeInfo.pon}
+SINAL DA FIBRA: ${atendimento.cpeInfo.sinalFibra}
+PON DO EQUIPAMENTO: ${atendimento.cpeInfo.sn}
 REDE LAN: ${atendimento.clienteInfo.redeLan}
 PLANO: ${atendimento.clienteInfo.planoCliente}
 LOGIN: ${atendimento.clienteInfo.loginPppoe}
