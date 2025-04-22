@@ -3,7 +3,19 @@
 import { ClienteInfo } from '../../types';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import dynamic from 'next/dynamic';
+import { useState } from 'react';
+
+// Importando o Select com dynamic para renderizar apenas no cliente
+const Select = dynamic(() => import('@/components/ui/select').then(mod => mod.Select), {
+    ssr: false,
+    loading: () => (
+        <div className="h-12 bg-white/50 dark:bg-background/30 border border-gray-300 dark:border-gray-700 rounded-xl flex items-center px-3 text-sm">
+            Carregando...
+        </div>
+    )
+});
 
 interface Props {
     data: ClienteInfo;
@@ -11,6 +23,8 @@ interface Props {
 }
 
 export default function InformacoesCliente({ data, onChange }: Props) {
+    const [inputValue, setInputValue] = useState(data.redeLan || '');
+
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { id, value } = e.target;
         onChange({
@@ -20,6 +34,7 @@ export default function InformacoesCliente({ data, onChange }: Props) {
     };
 
     const handleSelectChange = (value: string) => {
+        setInputValue(value);
         onChange({
             ...data,
             redeLan: value,
@@ -93,7 +108,10 @@ export default function InformacoesCliente({ data, onChange }: Props) {
                         <Label htmlFor="redeLan" className="text-gray-700 dark:text-gray-300 text-sm">
                             Rede LAN
                         </Label>
-                        <Select value={data.redeLan} onValueChange={handleSelectChange}>
+                        <Select
+                            defaultValue={inputValue}
+                            onValueChange={handleSelectChange}
+                        >
                             <SelectTrigger className="bg-white/50 dark:bg-background/30 border-gray-300 dark:border-gray-700 focus:border-gray-400 dark:focus:border-gray-500 h-12 rounded-xl">
                                 <SelectValue placeholder="Selecione o tipo de rede" />
                             </SelectTrigger>

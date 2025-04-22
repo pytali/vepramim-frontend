@@ -4,6 +4,22 @@ import { CPEInfo } from '../../types';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useOLTStore } from '@/store/olts';
+import { useEffect, useState } from 'react';
+import dynamic from 'next/dynamic';
+
+// Importar Combobox dinamicamente para evitar problemas de hidratação
+const DynamicCombobox = dynamic(
+    () => import('@/components/ui/combobox').then(mod => mod.Combobox),
+    {
+        ssr: false,
+        loading: () => (
+            <div className="h-12 bg-white/50 dark:bg-background/30 border border-gray-300 dark:border-gray-700 rounded-xl flex items-center px-3 text-sm">
+                Carregando...
+            </div>
+        )
+    }
+);
 
 interface Props {
     data: CPEInfo;
@@ -11,6 +27,22 @@ interface Props {
 }
 
 export default function InformacoesCPE({ data, onChange }: Props) {
+    const { olts, fetchOLTs } = useOLTStore();
+    const [oltValue, setOltValue] = useState(data.olt || '');
+    const [statusValue, setStatusValue] = useState<CPEInfo['status']>(data.status || 'UP');
+
+    useEffect(() => {
+        if (olts.length === 0) {
+            fetchOLTs();
+        }
+    }, [olts.length, fetchOLTs]);
+
+    // Sincronizar estados locais quando os dados externos são alterados (ex: quando limpar é acionado)
+    useEffect(() => {
+        setOltValue(data.olt || '');
+        setStatusValue(data.status || 'UP');
+    }, [data.olt, data.status]);
+
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { id, value } = e.target;
         const numericFields = ['slot', 'pon', 'sinalFibra'];
@@ -21,7 +53,24 @@ export default function InformacoesCPE({ data, onChange }: Props) {
         });
     };
 
+    const handleOltChange = (value: string) => {
+        setOltValue(value);
+        onChange({ ...data, olt: value });
+    };
+
+    const handleStatusChange = (value: string) => {
+        // Garantindo que o valor é um tipo válido para status
+        const typedStatus = value as CPEInfo['status'];
+        setStatusValue(typedStatus);
+        onChange({ ...data, status: typedStatus });
+    };
+
     const statusOptions = ['UP', 'LINK LOSS', 'DYNG GASP'];
+
+    const oltOptions = olts.map(olt => ({
+        label: olt.device_name,
+        value: olt.device_name
+    }));
 
     return (
         <div className="glass-card rounded-2xl p-6 mb-8">
@@ -33,12 +82,13 @@ export default function InformacoesCPE({ data, onChange }: Props) {
                         <Label htmlFor="olt" className="text-gray-700 dark:text-gray-300 text-sm">
                             OLT
                         </Label>
-                        <Input
-                            id="olt"
-                            type="text"
-                            placeholder="Digite a OLT"
-                            value={data.olt}
-                            onChange={handleChange}
+                        <DynamicCombobox
+                            options={oltOptions}
+                            value={oltValue}
+                            onValueChange={handleOltChange}
+                            placeholder="Selecione a OLT"
+                            searchPlaceholder="Digite para pesquisar..."
+                            allowCustomValue={true}
                             className="bg-white/50 dark:bg-background/30 border-gray-300 dark:border-gray-700 focus:border-gray-400 dark:focus:border-gray-500 h-12 rounded-xl"
                         />
                     </div>
@@ -103,8 +153,8 @@ export default function InformacoesCPE({ data, onChange }: Props) {
                             Status
                         </Label>
                         <Select
-                            value={data.status}
-                            onValueChange={(value) => onChange({ ...data, status: value as CPEInfo['status'] })}
+                            defaultValue={statusValue}
+                            onValueChange={handleStatusChange}
                         >
                             <SelectTrigger className="bg-white/50 dark:bg-background/30 border-gray-300 dark:border-gray-700 focus:border-gray-400 dark:focus:border-gray-500 h-12 rounded-xl">
                                 <SelectValue placeholder="Selecione o status" />

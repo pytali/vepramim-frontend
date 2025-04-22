@@ -4,7 +4,7 @@ export type AtendimentoInfo = {
     nomeContatante: string;
     telefone: string;
     titular: string;
-    dataAtendimento: string;
+    dataAtendimento: Date;
 }
 
 export type ClienteInfo = {

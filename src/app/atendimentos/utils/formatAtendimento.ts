@@ -1,4 +1,5 @@
 import { AtendimentoCompleto } from '../types';
+import { formatDateToBR } from './formatDate';
 
 export function formatAtendimentoText(atendimento: AtendimentoCompleto): string {
     const formatRedeInfo = (rede: typeof atendimento.rede2g | typeof atendimento.rede5g) => {
@@ -34,16 +35,17 @@ export function formatAtendimentoText(atendimento: AtendimentoCompleto): string 
 
     return `[INFORMAÇÕES DO ATENDIMENTO]
 ATENDENTE: ${atendimento.atendimentoInfo.nomeAtendente}
-DATA DO ATENDIMENTO: ${atendimento.atendimentoInfo.dataAtendimento}
+DATA DO ATENDIMENTO: ${formatDateToBR(atendimento.atendimentoInfo.dataAtendimento)}
 PROTOCOLO: ${atendimento.atendimentoInfo.protocoloAtendimento}
 CONTATANTE: ${atendimento.atendimentoInfo.nomeContatante}
 CONTATO: ${atendimento.atendimentoInfo.telefone}
 TITULAR: ${atendimento.atendimentoInfo.titular}
 
 [INFORMAÇÕES DO CPE]
-OLT ${atendimento.cpeInfo.olt} SLOT ${atendimento.cpeInfo.slot} PON ${atendimento.cpeInfo.pon}
+OLT ${atendimento.cpeInfo.olt} 
+SLOT ${atendimento.cpeInfo.slot} PON ${atendimento.cpeInfo.pon}
 SINAL DA FIBRA: ${atendimento.cpeInfo.sinalFibra}
-PON DO EQUIPAMENTO: ${atendimento.cpeInfo.sn}
+SN DO EQUIPAMENTO: ${atendimento.cpeInfo.sn}
 STATUS: ${atendimento.cpeInfo.status}
 
 [INFORMAÇÕES DO CLIENTE]
@@ -54,13 +56,11 @@ SENHA: ${atendimento.clienteInfo.senhaPppoe}
 
 [INFORMAÇÕES DO CHAMADO]
 MOTIVO DO CHAMADO: ${atendimento.chamadoInfo.motivoChamado}
-DATA RESERVADA: ${atendimento.chamadoInfo.dataReservada}
+DATA RESERVADA: ${formatDateToBR(atendimento.chamadoInfo.dataReservada)}
 LOCALIZAÇÃO DO CLIENTE: ${atendimento.chamadoInfo.localizacao}
-ALARME DO EQUIPAMENTO: ${atendimento.chamadoInfo.alarmeEquipamento}
 DESCRIÇÃO DO ATENDIMENTO: ${atendimento.chamadoInfo.descricaoAtendimento}
 
 [MÉTODOS APLICADOS NO EQUIPAMENTO]
-GERAL
 ATUALIZAÇÃO DE FIRMWARE: ${atendimento.metodosGerais.atualizacaoFirmware ? 'NÃO' : 'SIM'}
 LIMPEZA DE MAC: ${atendimento.metodosGerais.limpezaMac ? 'NÃO' : 'SIM'}
 ALTERADO SNTP: ${atendimento.metodosGerais.alteradoSntp ? 'NÃO' : 'SIM'}

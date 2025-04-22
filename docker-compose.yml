@@ -12,6 +12,8 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=3002
+    env_file:
+      - .env
     ports:
       - "3002:3002"
     healthcheck:

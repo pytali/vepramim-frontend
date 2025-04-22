@@ -1,40 +1,36 @@
 import { AtendimentoCompleto } from './types';
 
-export const mockClientes = [
-    { id: 'brd_64137_2', nome: 'Cliente Teste 1' },
-    { id: 'brd_64137', nome: 'Cliente Teste 2' },
-];
 
 export const mockAtendimento: AtendimentoCompleto = {
     atendimentoInfo: {
-        nomeAtendente: 'João Silva',
-        protocoloAtendimento: 'PROT123456',
-        nomeContatante: 'Maria Oliveira',
-        telefone: '(11) 99999-9999',
-        titular: 'José Santos',
-        dataAtendimento: '2024-03-20',
+        nomeAtendente: '',
+        protocoloAtendimento: '',
+        nomeContatante: '',
+        telefone: '',
+        titular: '',
+        dataAtendimento: new Date(Date.now())
     },
     clienteInfo: {
-        planoCliente: 'Fibra 500MB',
-        loginPppoe: 'cliente123',
-        senhaPppoe: 'senha123',
-        redeLan: 'ONT ZTE',
+        planoCliente: '',
+        loginPppoe: '',
+        senhaPppoe: '',
+        redeLan: '',
     },
     cpeInfo: {
-        olt: 'OLT-001',
-        slot: 1,
-        pon: 8,
-        sn: 'FHTT11112222',
-        sinalFibra: -25,
+        olt: '',
+        slot: 0,
+        pon: 0,
+        sn: '',
+        sinalFibra: -0,
         status: 'UP',
     },
     chamadoInfo: {
-        motivoChamado: 'Lentidão na conexão',
+        motivoChamado: '',
         status: 'PENDENTE',
         dataReservada: new Date(Date.now() + 1000 * 60 * 60 * 24),
-        localizacao: 'Rua Exemplo, 123',
-        alarmeEquipamento: 'LINK LOSS',
-        descricaoAtendimento: 'Cliente relatou lentidão na conexão. Realizado teste de velocidade e configurações do equipamento.',
+        localizacao: '',
+        descricaoAtendimento: '',
+        alarmeEquipamento: '',
     },
     metodosGerais: {
         atualizacaoFirmware: true,

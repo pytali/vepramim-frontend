@@ -15,7 +15,7 @@ interface Props {
 export default function InformacoesChamado({ data, onChange }: Props) {
     const [isTextareaExpanded, setIsTextareaExpanded] = useState(false);
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { id, value } = e.target;
         onChange({
             ...data,
@@ -23,7 +23,7 @@ export default function InformacoesChamado({ data, onChange }: Props) {
         });
     };
 
-    const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+    const handleBlur = (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { id } = e.target;
         onChange({
             ...data,
@@ -84,29 +84,24 @@ export default function InformacoesChamado({ data, onChange }: Props) {
                             onChange={handleChange}
                         />
                     </div>
+
                     <div className="space-y-2 col-span-full flex flex-col items-center">
                         <Label htmlFor="descricaoAtendimento" className="text-gray-700 dark:text-gray-300 text-sm text-center">
                             Descrição do Atendimento
                         </Label>
                         <Textarea
-                            //TODO Verificar bug no transition no navegador Safari
                             id="descricaoAtendimento"
                             className={`bg-white/50 dark:bg-background/30 border-gray-300 dark:border-gray-700 focus:border-gray-400 dark:focus:border-gray-500 w-full rounded-xl resize-none transition-all duration-500 ease-in-out ${isTextareaExpanded ? 'min-h-[200px]' : 'min-h-[45px]'}`}
                             placeholder="Digite a descrição do atendimento"
                             value={data.descricaoAtendimento}
                             onFocus={() => setIsTextareaExpanded(true)}
-                            onBlur={(e: React.FocusEvent<HTMLTextAreaElement>) => {
+                            onBlur={(e) => {
                                 if (!e.target.value) {
                                     setIsTextareaExpanded(false);
                                 }
-                                handleBlur({ target: { id: "descricaoAtendimento" } } as React.FocusEvent<HTMLInputElement>);
+                                handleBlur(e);
                             }}
-                            onChange={(e) => handleChange({
-                                target: {
-                                    id: "descricaoAtendimento",
-                                    value: e.target.value
-                                }
-                            } as React.ChangeEvent<HTMLInputElement>)}
+                            onChange={handleChange}
                         />
                     </div>
                 </div>

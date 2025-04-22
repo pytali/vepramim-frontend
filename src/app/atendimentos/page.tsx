@@ -13,6 +13,7 @@ import InformacoesChamado from './components/sections/InformacoesChamado';
 import MetodosAplicados from './components/sections/MetodosAplicados';
 import { useAtendimentoPersistence } from './hooks/useAtendimentoPersistence';
 import { formatAtendimentoText } from './utils/formatAtendimento';
+import ClientSearch from './components/ClientSearch';
 
 export default function AtendimentoPage() {
     const router = useRouter();
@@ -21,6 +22,7 @@ export default function AtendimentoPage() {
     const [toastMessage, setToastMessage] = useState("");
     const [toastType, setToastType] = useState<"success" | "error">("success");
     const [isCopying, setIsCopying] = useState(false);
+    const [showFullView, setShowFullView] = useState(false);
 
     const handleAtendimentoInfoChange = (data: typeof atendimento.atendimentoInfo) => {
         setAtendimento((prev) => ({
@@ -71,6 +73,49 @@ export default function AtendimentoPage() {
         }));
     };
 
+    const handleClientDataFound = (data: {
+        loginPPPoE?: string;
+        senha?: string;
+        plano?: string;
+        olt?: string;
+        slot?: string;
+        pon?: string;
+        sn?: string;
+        sinalFibra?: string;
+        status?: "UP" | "LINK LOSS" | "DYNG GASP";
+        error?: string;
+    }) => {
+        if (data.error) {
+            setToastMessage(data.error);
+            setToastType("error");
+            setShowToast(true);
+            return;
+        }
+
+        setAtendimento((prev) => ({
+            ...prev,
+            clienteInfo: {
+                ...prev.clienteInfo,
+                loginPppoe: data.loginPPPoE || prev.clienteInfo.loginPppoe,
+                senhaPppoe: data.senha || prev.clienteInfo.senhaPppoe,
+                planoCliente: data.plano || prev.clienteInfo.planoCliente,
+            },
+            cpeInfo: {
+                ...prev.cpeInfo,
+                olt: data.olt || prev.cpeInfo.olt,
+                slot: data.slot ? Number(data.slot) : prev.cpeInfo.slot,
+                pon: data.pon ? Number(data.pon) : prev.cpeInfo.pon,
+                sn: data.sn || prev.cpeInfo.sn,
+                sinalFibra: data.sinalFibra ? Number(data.sinalFibra) : prev.cpeInfo.sinalFibra,
+                status: data.status || prev.cpeInfo.status,
+            }
+        }));
+
+        setToastMessage("Dados do cliente atualizados com sucesso!");
+        setToastType("success");
+        setShowToast(true);
+    };
+
     const handleCopyData = () => {
         setIsCopying(true);
         const texto = formatAtendimentoText(atendimento);
@@ -96,6 +141,7 @@ export default function AtendimentoPage() {
 
     const handleReset = () => {
         resetAtendimento();
+        setShowFullView(false);
         setToastMessage("Dados limpos com sucesso!");
         setToastType("success");
         setShowToast(true);
@@ -125,40 +171,56 @@ export default function AtendimentoPage() {
             </header>
 
             <main className="relative z-10 container mx-auto max-w-7xl px-4 py-8">
-                <InformacoesAtendimento
-                    data={atendimento.atendimentoInfo}
-                    onChange={handleAtendimentoInfoChange}
+                <ClientSearch
+                    onClientDataFound={handleClientDataFound}
+                    atendimento={atendimento}
+                    setAtendimento={setAtendimento}
+                    showFullView={showFullView}
+                    setShowFullView={setShowFullView}
                 />
 
-                <InformacoesCliente
-                    data={atendimento.clienteInfo}
-                    onChange={handleClienteInfoChange}
-                />
+                <div className={`transition-all duration-700 ease-out space-y-6 will-change-transform
+                    ${showFullView
+                        ? 'opacity-100 transform-none'
+                        : 'opacity-0 transform translate-y-8 pointer-events-none h-0 overflow-hidden'}`}>
+                    <InformacoesAtendimento
+                        data={atendimento.atendimentoInfo}
+                        onChange={handleAtendimentoInfoChange}
+                    />
 
-                <InformacoesCPE
-                    data={atendimento.cpeInfo}
-                    onChange={handleConcentradorInfoChange}
-                />
+                    <InformacoesCliente
+                        data={atendimento.clienteInfo}
+                        onChange={handleClienteInfoChange}
+                    />
 
-                <InformacoesChamado
-                    data={atendimento.chamadoInfo}
-                    onChange={handleChamadoInfoChange}
-                />
+                    <InformacoesCPE
+                        data={atendimento.cpeInfo}
+                        onChange={handleConcentradorInfoChange}
+                    />
 
-                <MetodosAplicados
-                    metodosGerais={atendimento.metodosGerais}
-                    rede2g={atendimento.rede2g}
-                    rede5g={atendimento.rede5g}
-                    onChangeMetodosGerais={handleMetodosGeraisChange}
-                    onChangeRede2g={handleRede2gChange}
-                    onChangeRede5g={handleRede5gChange}
-                />
+                    <InformacoesChamado
+                        data={atendimento.chamadoInfo}
+                        onChange={handleChamadoInfoChange}
+                    />
+
+                    <MetodosAplicados
+                        metodosGerais={atendimento.metodosGerais}
+                        rede2g={atendimento.rede2g}
+                        rede5g={atendimento.rede5g}
+                        onChangeMetodosGerais={handleMetodosGeraisChange}
+                        onChangeRede2g={handleRede2gChange}
+                        onChangeRede5g={handleRede5gChange}
+                    />
+                </div>
             </main>
 
-            <div className="fixed bottom-8 right-8 flex gap-2">
+            <div className={`fixed bottom-8 right-8 flex gap-2 transition-all duration-500 ease-out
+                ${showFullView
+                    ? 'opacity-100 transform translate-y-0'
+                    : 'opacity-0 transform translate-y-10 pointer-events-none'}`}>
                 <button
                     onClick={handleReset}
-                    className="bg-red-500 hover:bg-red-600 text-white dark:bg-red-500/20 dark:hover:bg-red-500/30 dark:text-white dark:border dark:border-red-500/20 rounded-full p-4 shadow-lg flex items-center gap-2 transition-transform duration-200"
+                    className="bg-red-500 hover:bg-red-600 text-white dark:bg-red-500/20 dark:hover:bg-red-500/30 dark:text-white dark:border dark:border-red-500/20 rounded-full p-4 shadow-lg flex items-center gap-2 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 active:translate-y-0"
                 >
                     <Trash2 className="h-5 w-5" />
                     <span>Limpar</span>
@@ -167,7 +229,7 @@ export default function AtendimentoPage() {
                 <button
                     onClick={handleCopyData}
                     disabled={isCopying}
-                    className={`bg-gray-900 hover:bg-gray-800 text-white dark:bg-white/10 dark:hover:bg-white/20 dark:text-white dark:border dark:border-white/20 rounded-full p-4 shadow-lg flex items-center gap-2 transition-transform duration-200 ${isCopying ? 'scale-95' : ''}`}
+                    className={`bg-gray-900 hover:bg-gray-800 text-white dark:bg-white/10 dark:hover:bg-white/20 dark:text-white dark:border dark:border-white/20 rounded-full p-4 shadow-lg flex items-center gap-2 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 active:translate-y-0 ${isCopying ? 'scale-95' : ''}`}
                 >
                     <Copy className={`h-5 w-5 transition-transform duration-200 ${isCopying ? 'scale-90' : ''}`} />
                     <span>Copiar</span>
