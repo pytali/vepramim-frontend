@@ -8,10 +8,20 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Search, ArrowLeft, Signal, Thermometer, Zap } from "lucide-react"
+import { Search, ArrowLeft, Signal, Thermometer, Zap, CheckCircle, AlertTriangle, XCircle } from "lucide-react"
 import { Logo } from "@/components/logo"
 import { useOLTStore } from "@/store/olts"
 import { Toast, ToastContainer } from "@/components/ui/toast"
+import { parseONUSerial } from "@/app/api/actions"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog"
+import { ScrollArea } from "@/components/ui/scroll-area"
 
 interface OnuData {
   data: Array<{
@@ -43,8 +53,74 @@ interface OnuData {
   }>
 }
 
+interface Login {
+  login: string
+  conexao: string
+  id_contrato: string
+  senha: string
+  online: string
+  ultima_conexao_inicial: string
+}
+
+// Componente LoginSelector
+function LoginSelector({ isOpen, onClose, logins, onSelect }: {
+  isOpen: boolean
+  onClose: () => void
+  logins: Login[]
+  onSelect: (login: Login) => void
+}) {
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>Selecione o Login</DialogTitle>
+          <DialogDescription>
+            Foram encontrados múltiplos logins para este cliente. Selecione qual deseja consultar.
+          </DialogDescription>
+        </DialogHeader>
+
+        <ScrollArea className="max-h-[400px] pr-4">
+          <div className="space-y-2">
+            {logins.map((login, index) => (
+              <div
+                key={index}
+                className="p-4 rounded-lg border border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="space-y-1">
+                    <p className="font-medium">{login.login}</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                      Conexão: {login.conexao || 'N/A'}
+                    </p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                      Status: {login.online === 'S' ?
+                        <span className="text-green-500">Online</span> :
+                        <span className="text-red-500">Offline</span>
+                      }
+                    </p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                      Última conexão: {login.ultima_conexao_inicial || 'N/A'}
+                    </p>
+                  </div>
+                  <Button
+                    onClick={() => onSelect(login)}
+                    variant="outline"
+                  >
+                    Selecionar
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </ScrollArea>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export default function OnuSearch() {
   const router = useRouter()
+  const [searchQuery, setSearchQuery] = useState("")
   const [serialNumber, setSerialNumber] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
@@ -54,6 +130,11 @@ export default function OnuSearch() {
   const [toastType, setToastType] = useState<"success" | "error">("success")
   const [isCopying, setIsCopying] = useState(false)
   const { olts, fetchOLTs } = useOLTStore()
+  const [showLoginSelector, setShowLoginSelector] = useState(false)
+  const [availableLogins, setAvailableLogins] = useState<Login[]>([])
+  const [showSignalAlert, setShowSignalAlert] = useState(false)
+  const [criticalSignalType, setCriticalSignalType] = useState<string>("")
+  const [criticalSignalValue, setCriticalSignalValue] = useState<string>("")
 
   const handleCopyData = () => {
     if (!onuData?.data?.[0]) return
@@ -97,21 +178,36 @@ Modelo ONU/ONT: ${data.onu_type || ''}`
     }
   }, [olts.length, fetchOLTs])
 
-  async function handleSearch(e: React.FormEvent) {
-    e.preventDefault()
-    setError("")
-    setOnuData(null)
+  // Determina se a entrada é um ID de contrato (numérico) ou um SN (alfanumérico)
+  const isIdContrato = (query: string): boolean => {
+    return /^\d+$/.test(query)
+  }
 
-    if (!serialNumber.trim()) {
-      setError("Por favor, digite um número de série")
-      return
-    }
-
+  // Processa um login selecionado pelo usuário
+  const handleLoginSelect = async (selectedLogin: Login) => {
+    setShowLoginSelector(false)
     setIsLoading(true)
 
     try {
-      // Fazer a chamada real à API
-      const response = await fetch(`/api/onu/${serialNumber}`)
+      // Extrai o SN da ONU
+      const onuSN = await parseONUSerial(selectedLogin.conexao)
+      if (!onuSN) {
+        throw new Error("Não foi possível identificar o SN da ONU")
+      }
+
+      // Agora busca a ONU usando o SN obtido
+      await searchBySN(onuSN)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Ocorreu um erro durante a busca")
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  // Busca a ONU pelo número de série
+  const searchBySN = async (sn: string) => {
+    try {
+      const response = await fetch(`/api/onu/${sn}`)
 
       if (!response.ok) {
         const errorData = await response.json()
@@ -119,7 +215,92 @@ Modelo ONU/ONT: ${data.onu_type || ''}`
       }
 
       const data = await response.json()
+      setSerialNumber(sn)
       setOnuData(data)
+
+      // Verificar se os sinais estão abaixo do limiar crítico
+      if (data?.data && data.data.length > 0 && data.data[0].onu_signal) {
+        const rxPower = Number(data.data[0].onu_signal.rx_power)
+        const pRxPower = Number(data.data[0].onu_signal.p_rx_power)
+
+        if (rxPower < -26) {
+          setCriticalSignalType("Potência ONU RX")
+          setCriticalSignalValue(rxPower.toFixed(2))
+          setShowSignalAlert(true)
+        } else if (pRxPower < -26) {
+          setCriticalSignalType("Potência OLT RX")
+          setCriticalSignalValue(pRxPower.toFixed(2))
+          setShowSignalAlert(true)
+        }
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Ocorreu um erro durante a busca")
+    }
+  }
+
+  // Busca o cliente pelo ID do contrato, obtém o SN e depois busca a ONU
+  const searchByIdContrato = async (idCliente: string) => {
+    try {
+      // Busca dados do radius
+      const response = await fetch(`/api/client?idCliente=${idCliente}`)
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error_description || "Erro ao buscar dados do cliente")
+      }
+
+      const radiusData = await response.json()
+
+      if (radiusData.error) {
+        throw new Error("Cliente não encontrado")
+      }
+
+      const logins = radiusData.data[0]?.logins
+      if (!logins || logins.length === 0) {
+        throw new Error("Nenhum login encontrado para este cliente")
+      }
+
+      // Se houver apenas um login, processa diretamente
+      if (logins.length === 1) {
+        const clientData = logins[0]
+        // Extrai o SN da conexão
+        const onuSN = await parseONUSerial(clientData.conexao)
+        if (!onuSN) {
+          throw new Error("Não foi possível identificar o SN da ONU")
+        }
+
+        // Agora busca a ONU usando o SN obtido
+        await searchBySN(onuSN)
+      } else {
+        // Se houver múltiplos logins, mostra o seletor
+        setAvailableLogins(logins)
+        setShowLoginSelector(true)
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Ocorreu um erro durante a busca")
+    }
+  }
+
+  async function handleSearch(e: React.FormEvent) {
+    e.preventDefault()
+    setError("")
+    setOnuData(null)
+
+    if (!searchQuery.trim()) {
+      setError("Por favor, digite um número de série ou ID de cliente")
+      return
+    }
+
+    setIsLoading(true)
+
+    try {
+      if (isIdContrato(searchQuery)) {
+        // Se for um ID de contrato (somente números), busca pelo ID
+        await searchByIdContrato(searchQuery)
+      } else {
+        // Se for alfanumérico, assume que é um SN e busca diretamente
+        await searchBySN(searchQuery)
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Ocorreu um erro durante a busca")
     } finally {
@@ -151,20 +332,20 @@ Modelo ONU/ONT: ${data.onu_type || ''}`
 
       <main className="relative z-10 container mx-auto p-6 pt-12">
         <div className="glass-card rounded-2xl p-6 mb-8">
-          <h2 className="text-xl font-light text-gray-900 dark:text-white mb-4">Buscar ONU</h2>
+          <h2 className="text-xl font-light text-gray-900 dark:text-white mb-4">Buscar ONU/Cliente</h2>
 
           <form onSubmit={handleSearch} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="serialNumber" className="text-gray-700 dark:text-gray-300 text-sm">
-                Número de Série
+              <Label htmlFor="searchQuery" className="text-gray-700 dark:text-gray-300 text-sm">
+                Número de Série ou ID Cliente
               </Label>
               <div className="flex gap-2">
                 <Input
-                  id="serialNumber"
+                  id="searchQuery"
                   type="text"
-                  placeholder="Ex: FHTT11112222"
-                  value={serialNumber}
-                  onChange={(e) => setSerialNumber(e.target.value)}
+                  placeholder="Ex: FHTT11112222 ou 12345"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
                   className="bg-white/50 dark:bg-background/30 border-gray-300 dark:border-gray-700 focus:border-gray-400 dark:focus:border-gray-500 h-12 rounded-xl"
                   required
                 />
@@ -177,6 +358,9 @@ Modelo ONU/ONT: ${data.onu_type || ''}`
                   {isLoading ? "" : "Buscar"}
                 </Button>
               </div>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                Você pode buscar utilizando o Número de Série (SN) da ONU ou o ID do Cliente
+              </p>
             </div>
 
             {error && (
@@ -257,8 +441,29 @@ Modelo ONU/ONT: ${data.onu_type || ''}`
                           <span className="text-gray-600 dark:text-gray-400 min-w-[120px] font-medium">
                             Estado Operacional
                           </span>
-                          <span className="text-gray-900 dark:text-white pl-4 flex-1 text-right break-words">
-                            {onuData.data[0].onu_state?.oper_state}
+                          <span className="text-gray-900 dark:text-white pl-4 flex-1 text-right break-words flex items-center justify-end gap-2">
+                            {onuData.data[0].onu_state?.oper_state === "UP" ? (
+                              <>
+                                <span className="text-green-500 font-medium">
+                                  {onuData.data[0].onu_state?.oper_state}
+                                </span>
+                                <CheckCircle className="h-5 w-5 text-green-500" />
+                              </>
+                            ) : onuData.data[0].onu_state?.oper_state === "LINK LOSS" ? (
+                              <>
+                                <span className="text-amber-500 font-medium">
+                                  {onuData.data[0].onu_state?.oper_state}
+                                </span>
+                                <AlertTriangle className="h-5 w-5 text-amber-500" />
+                              </>
+                            ) : (
+                              <>
+                                <span className="text-red-500 font-medium">
+                                  {onuData.data[0].onu_state?.oper_state}
+                                </span>
+                                <XCircle className="h-5 w-5 text-red-500" />
+                              </>
+                            )}
                           </span>
                         </div>
                         <div className="flex p-3 rounded-xl bg-gray-100/50 dark:bg-white/5 border border-gray-200/50 dark:border-white/5">
@@ -404,6 +609,57 @@ Modelo ONU/ONT: ${data.onu_type || ''}`
           </div>
         )}
       </main>
+
+      {/* Seletor de login para múltiplos logins */}
+      <LoginSelector
+        isOpen={showLoginSelector}
+        onClose={() => setShowLoginSelector(false)}
+        logins={availableLogins}
+        onSelect={handleLoginSelect}
+      />
+
+      {/* Modal de alerta para sinal crítico */}
+      <Dialog open={showSignalAlert} onOpenChange={setShowSignalAlert}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center text-red-500 gap-2">
+              <AlertTriangle className="h-5 w-5" />
+              Alerta de Sinal Crítico
+            </DialogTitle>
+            <DialogDescription>
+              O valor do sinal <strong>{criticalSignalType}</strong> está crítico ({criticalSignalValue} dBm).
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="py-4">
+            <p className="text-sm text-gray-700 dark:text-gray-300">
+              Valores de potência abaixo de -26 dBm indicam problemas na rede óptica. Recomendamos abrir uma OS para que um técnico possa verificar a situação.
+            </p>
+          </div>
+
+          <DialogFooter className="flex flex-col sm:flex-row gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setShowSignalAlert(false)}
+              className="sm:order-first order-last"
+            >
+              Fechar
+            </Button>
+            <Button
+              onClick={() => {
+                // Aqui poderia direcionar para a tela de abertura de OS
+                setShowSignalAlert(false)
+                setToastMessage("Função de abertura de OS será implementada em breve")
+                setToastType("success")
+                setShowToast(true)
+              }}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              Abrir OS para Técnico
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {onuData && onuData.data && onuData.data.length > 0 && (
         <button
