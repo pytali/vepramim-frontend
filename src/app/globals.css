@@ -2,7 +2,6 @@
 @import "tw-animate-css";
 /*@import "tailwindcss/preflight";*/
 @tailwind utilities;
-
 /* Solução de rolagem - início */
 html, body {
   overflow: auto !important;
@@ -70,8 +69,7 @@ body[style*="position: fixed"] {
   cursor: pointer;
 }
 
-/* Remover regra não reconhecida */
-/* @custom-variant dark (&:is(.dark *)); */
+@custom-variant dark (&:is(.dark *));
 
 @theme inline {
   --color-background: var(--background);
@@ -215,6 +213,7 @@ body::before {
   content: none !important;
 }
 
+
 .glow-text {
   text-shadow: 0 0 15px rgba(255, 255, 255, 0.5);
 }
@@ -278,7 +277,6 @@ body::before {
   width: 30%;
   background: linear-gradient(90deg, #f87171, #ef4444);
 }
-
 
 
 
