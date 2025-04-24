@@ -181,7 +181,7 @@ export default function AtendimentoPage() {
 
                 <div className={`transition-all duration-700 ease-out space-y-6 will-change-transform
                     ${showFullView
-                        ? 'opacity-100 transform-none'
+                        ? 'opacity-100 transform-none sm:mb-24 mb-16'
                         : 'opacity-0 transform translate-y-8 pointer-events-none h-0 overflow-hidden'}`}>
                     <InformacoesAtendimento
                         data={atendimento.atendimentoInfo}
@@ -211,29 +211,49 @@ export default function AtendimentoPage() {
                         onChangeRede2g={handleRede2gChange}
                         onChangeRede5g={handleRede5gChange}
                     />
+
+                    <div className="h-24 sm:h-0" aria-hidden="true" />
                 </div>
             </main>
 
-            <div className={`fixed bottom-8 right-8 flex gap-2 transition-all duration-500 ease-out
+            <div className={`fixed z-20 transition-all duration-500 ease-out
+                sm:bottom-8 sm:right-8 
+                bottom-0 right-0 left-0
+                sm:w-auto w-full
+                sm:p-0 px-4 py-4
+                sm:backdrop-blur-none backdrop-blur-md
+                sm:mt-0 mt-8
+                border-t sm:border-t-0 border-gray-200/10
                 ${showFullView
                     ? 'opacity-100 transform translate-y-0'
                     : 'opacity-0 transform translate-y-10 pointer-events-none'}`}>
-                <button
-                    onClick={handleReset}
-                    className="bg-red-500 hover:bg-red-600 text-white dark:bg-red-500/20 dark:hover:bg-red-500/30 dark:text-white dark:border dark:border-red-500/20 rounded-full p-4 shadow-lg flex items-center gap-2 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 active:translate-y-0"
-                >
-                    <Trash2 className="h-5 w-5" />
-                    <span>Limpar</span>
-                </button>
+                <div className="flex sm:flex-row flex-col-reverse sm:gap-2 gap-3 w-full sm:w-auto justify-end">
+                    <button
+                        onClick={handleReset}
+                        className="bg-red-500 hover:bg-red-600 text-white dark:bg-red-500/20 dark:hover:bg-red-500/30 
+                            dark:text-white dark:border dark:border-red-500/20 rounded-full p-4 shadow-lg 
+                            flex items-center justify-center gap-2 transition-all duration-300 
+                            hover:shadow-xl hover:-translate-y-1 active:translate-y-0
+                            sm:w-auto w-full"
+                    >
+                        <Trash2 className="h-5 w-5" />
+                        <span>Limpar</span>
+                    </button>
 
-                <button
-                    onClick={handleCopyData}
-                    disabled={isCopying}
-                    className={`bg-gray-900 hover:bg-gray-800 text-white dark:bg-white/10 dark:hover:bg-white/20 dark:text-white dark:border dark:border-white/20 rounded-full p-4 shadow-lg flex items-center gap-2 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 active:translate-y-0 ${isCopying ? 'scale-95' : ''}`}
-                >
-                    <Copy className={`h-5 w-5 transition-transform duration-200 ${isCopying ? 'scale-90' : ''}`} />
-                    <span>Copiar</span>
-                </button>
+                    <button
+                        onClick={handleCopyData}
+                        disabled={isCopying}
+                        className={`bg-gray-900 hover:bg-gray-800 text-white dark:bg-white/10 dark:hover:bg-white/20 
+                            dark:text-white dark:border dark:border-white/20 rounded-full p-4 shadow-lg 
+                            flex items-center justify-center gap-2 transition-all duration-300 
+                            hover:shadow-xl hover:-translate-y-1 active:translate-y-0
+                            sm:w-auto w-full
+                            ${isCopying ? 'scale-95' : ''}`}
+                    >
+                        <Copy className={`h-5 w-5 transition-transform duration-200 ${isCopying ? 'scale-90' : ''}`} />
+                        <span>Copiar</span>
+                    </button>
+                </div>
             </div>
 
             <ToastContainer>
