@@ -15,6 +15,7 @@ interface Login {
     senha: string;
     online: string;
     ultima_conexao_inicial: string;
+    endpoint?: string;
 }
 
 interface LoginSelectorProps {
@@ -57,6 +58,11 @@ export default function LoginSelector({ isOpen, onClose, logins, onSelect }: Log
                                         <p className="text-sm text-gray-500 dark:text-gray-400">
                                             Última conexão: {login.ultima_conexao_inicial || 'N/A'}
                                         </p>
+                                        {login.endpoint && (
+                                            <p className="text-xs text-blue-500 dark:text-blue-400">
+                                                {login.endpoint.replace('https://', '').split('/')[0]}
+                                            </p>
+                                        )}
                                     </div>
                                     <Button
                                         onClick={() => onSelect(login)}

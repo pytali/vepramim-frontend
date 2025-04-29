@@ -44,6 +44,12 @@ interface Login {
     senha: string;
     online: string;
     ultima_conexao_inicial: string;
+    endpoint?: string;
+}
+
+interface RadiusSource {
+    logins: Login[];
+    endpoint: string;
 }
 
 interface ClientSearchProps {
@@ -203,19 +209,35 @@ export default function ClientSearch({
                 return;
             }
 
-            const logins = radiusData.data[0]?.logins;
-            if (!logins || logins.length === 0) {
+            // Combine logins de todos os endpoints disponíveis
+            let allLogins: Login[] = [];
+
+            // Verifica se há dados em múltiplos endpoints
+            if (radiusData.data && radiusData.data.length > 0) {
+                radiusData.data.forEach((source: RadiusSource) => {
+                    if (source.logins && Array.isArray(source.logins)) {
+                        // Adiciona informação do endpoint em cada login para referência
+                        const loginsWithSource = source.logins.map((login: Login) => ({
+                            ...login,
+                            endpoint: source.endpoint
+                        }));
+                        allLogins = [...allLogins, ...loginsWithSource];
+                    }
+                });
+            }
+
+            if (allLogins.length === 0) {
                 onClientDataFound({ error: 'Nenhum login encontrado para este cliente' });
                 return;
             }
 
             // Se houver apenas um login, processa diretamente
-            if (logins.length === 1) {
-                await processClientData(logins[0]);
+            if (allLogins.length === 1) {
+                await processClientData(allLogins[0]);
                 setShowFullView(true);
             } else {
                 // Se houver múltiplos logins, mostra o seletor
-                setAvailableLogins(logins);
+                setAvailableLogins(allLogins);
                 setShowLoginSelector(true);
             }
         } catch (error) {
