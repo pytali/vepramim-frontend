@@ -60,6 +60,12 @@ interface Login {
   senha: string
   online: string
   ultima_conexao_inicial: string
+  endpoint?: string
+}
+
+interface RadiusSource {
+  logins: Login[]
+  endpoint: string
 }
 
 // Componente LoginSelector
@@ -101,6 +107,11 @@ function LoginSelector({ isOpen, onClose, logins, onSelect }: {
                     <p className="text-sm text-gray-500 dark:text-gray-400">
                       Última conexão: {login.ultima_conexao_inicial || 'N/A'}
                     </p>
+                    {login.endpoint && (
+                      <p className="text-xs text-blue-500 dark:text-blue-400">
+                        {login.endpoint.replace('https://', '').split('/')[0]}
+                      </p>
+                    )}
                   </div>
                   <Button
                     onClick={() => onSelect(login)}
@@ -255,14 +266,30 @@ Modelo ONU/ONT: ${data.onu_type || ''}`
         throw new Error("Cliente não encontrado")
       }
 
-      const logins = radiusData.data[0]?.logins
-      if (!logins || logins.length === 0) {
+      // Combine logins de todos os endpoints disponíveis
+      let allLogins: Login[] = []
+
+      // Verifica se há dados em múltiplos endpoints
+      if (radiusData.data && radiusData.data.length > 0) {
+        radiusData.data.forEach((source: RadiusSource) => {
+          if (source.logins && Array.isArray(source.logins)) {
+            // Adiciona informação do endpoint em cada login para referência
+            const loginsWithSource = source.logins.map((login: Login) => ({
+              ...login,
+              endpoint: source.endpoint
+            }))
+            allLogins = [...allLogins, ...loginsWithSource]
+          }
+        })
+      }
+
+      if (allLogins.length === 0) {
         throw new Error("Nenhum login encontrado para este cliente")
       }
 
       // Se houver apenas um login, processa diretamente
-      if (logins.length === 1) {
-        const clientData = logins[0]
+      if (allLogins.length === 1) {
+        const clientData = allLogins[0]
         // Extrai o SN da conexão
         const onuSN = await parseONUSerial(clientData.conexao)
         if (!onuSN) {
@@ -273,7 +300,7 @@ Modelo ONU/ONT: ${data.onu_type || ''}`
         await searchBySN(onuSN)
       } else {
         // Se houver múltiplos logins, mostra o seletor
-        setAvailableLogins(logins)
+        setAvailableLogins(allLogins)
         setShowLoginSelector(true)
       }
     } catch (err) {
