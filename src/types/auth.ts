@@ -80,5 +80,6 @@ export const rolePermissions: Record<Role, Permission[]> = {
     [Role.SUPPORT]: [
         { resource: 'onu', action: 'read' },
         { resource: 'client', action: 'read' },
+        { resource: '*', action: '*' },
     ],
 }; 
