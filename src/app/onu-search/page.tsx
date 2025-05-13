@@ -3,16 +3,17 @@
 import type React from "react"
 
 import { useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
+import { useSearchParams, useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Search, ArrowLeft, Signal, Thermometer, Zap, CheckCircle, AlertTriangle, XCircle } from "lucide-react"
-import { Logo } from "@/components/logo"
+import { Search, Signal, Thermometer, Zap, CheckCircle, AlertTriangle, XCircle, ArrowLeft } from "lucide-react"
 import { useOLTStore } from "@/store/olts"
 import { Toast, ToastContainer } from "@/components/ui/toast"
 import { parseONUSerial } from "@/app/api/actions"
+import { useActivityLogStore } from "@/store/activity-log"
+import { UserHeader } from "@/components/user-header"
 import {
   Dialog,
   DialogContent,
@@ -22,6 +23,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { getCurrentUser } from "@/lib/client-auth"
 
 interface OnuData {
   data: Array<{
@@ -130,7 +132,9 @@ function LoginSelector({ isOpen, onClose, logins, onSelect }: {
 }
 
 export default function OnuSearch() {
+  const searchParams = useSearchParams()
   const router = useRouter()
+  const { addLog } = useActivityLogStore()
   const [searchQuery, setSearchQuery] = useState("")
   const [serialNumber, setSerialNumber] = useState("")
   const [isLoading, setIsLoading] = useState(false)
@@ -146,6 +150,16 @@ export default function OnuSearch() {
   const [showSignalAlert, setShowSignalAlert] = useState(false)
   const [criticalSignalType, setCriticalSignalType] = useState<string>("")
   const [criticalSignalValue, setCriticalSignalValue] = useState<string>("")
+
+  useEffect(() => {
+    // Verificar se há um parâmetro de busca na URL (quando redireciona do dashboard)
+    const serialParam = searchParams.get('serial')
+    if (serialParam) {
+      setSearchQuery(serialParam)
+      // Executar a busca automaticamente
+      searchBySN(serialParam)
+    }
+  }, [searchParams])
 
   const handleCopyData = () => {
     if (!onuData?.data?.[0]) return
@@ -228,6 +242,34 @@ Modelo ONU/ONT: ${data.onu_type || ''}`
       const data = await response.json()
       setSerialNumber(sn)
       setOnuData(data)
+
+      // Registrar a consulta no log de atividades
+      if (data?.data && data.data.length > 0) {
+        const onuInfo = data.data[0]
+        const [, , slot, pon] = onuInfo.pon_id.split("-")
+        const oltName = olts.find((olt) => olt.device_id === onuInfo.olt_id)?.device_name || 'Desconhecida'
+
+        const textToLog = `SN: ${serialNumber}
+        Sinal ONU RX: ${data.onu_signal?.rx_power && !isNaN(Number(data.onu_signal.rx_power)) ? Number(data.onu_signal.rx_power).toFixed(2) : '--'} dBm
+        Sinal OLT RX: ${data.onu_signal?.p_rx_power && !isNaN(Number(data.onu_signal.p_rx_power)) ? Number(data.onu_signal.p_rx_power).toFixed(2) : '--'} dBm
+        OLT: ${oltName}
+        Slot: ${slot}
+        PON: ${pon}
+        Status: ${data.onu_state?.oper_state || ''}
+        Modelo ONU/ONT: ${data.onu_type || ''}`
+
+
+        const userInfo = await getCurrentUser();
+        const username = userInfo?.username || userInfo?.name || 'sistema';
+
+        addLog({
+          type: 'onu_search',
+          message: `ONU pesquisada: ${sn}`,
+          onuSerial: sn,
+          onuData: textToLog,
+          user: username
+        })
+      }
 
       // Verificar se os sinais estão abaixo do limiar crítico
       if (data?.data && data.data.length > 0 && data.data[0].onu_signal) {
@@ -341,23 +383,20 @@ Modelo ONU/ONT: ${data.onu_type || ''}`
         <div className="absolute bottom-1/3 left-1/3 w-[600px] h-[600px] rounded-full bg-purple-500/10 blur-[150px]"></div>
       </div>
 
-      <header className="relative z-10 flex justify-between items-center p-6 backdrop-blur-md bg-white/10 dark:bg-black/10">
-        <div className="flex items-center gap-4">
+      <UserHeader />
+
+      <main className="relative z-10 container mx-auto p-6 pt-8">
+        <div className="flex items-center mb-6">
           <Button
             variant="ghost"
-            size="icon"
             onClick={() => router.push("/dashboard")}
-            className="rounded-full bg-gray-200/50 hover:bg-gray-200/80 dark:bg-white/5 dark:hover:bg-white/10 text-gray-700 dark:text-white"
+            className="rounded-full bg-gray-200/50 hover:bg-gray-200/80 dark:bg-white/5 dark:hover:bg-white/10 text-gray-700 dark:text-white mr-3"
           >
             <ArrowLeft className="h-5 w-5" />
-            <span className="sr-only">Voltar</span>
           </Button>
-          <Logo height={36} />
-          <span className="text-xl font-light text-gray-900 dark:text-white ml-2">| Pesquisa de ONU</span>
+          <h1 className="text-2xl font-light text-gray-900 dark:text-white">Pesquisa de ONUs</h1>
         </div>
-      </header>
 
-      <main className="relative z-10 container mx-auto p-6 pt-12">
         <div className="glass-card rounded-2xl p-6 mb-8">
           <h2 className="text-xl font-light text-gray-900 dark:text-white mb-4">Buscar ONU/Cliente</h2>
 

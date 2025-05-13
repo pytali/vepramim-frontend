@@ -6,6 +6,7 @@ interface OLT {
     device_type: string
     device_ip: string
     status: string
+    location: string
     // Adicione mais campos conforme necessário
 }
 
@@ -32,6 +33,7 @@ export const useOLTStore = create<OLTStore>((set) => ({
             }
 
             const { data } = await response.json()
+
             set({ olts: data })
         } catch (error) {
             console.error('Erro ao buscar OLTs:', error)

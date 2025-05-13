@@ -4,8 +4,8 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Copy, Trash2 } from 'lucide-react';
-import { Logo } from '@/components/logo';
 import { Toast, ToastContainer } from '@/components/ui/toast';
+import { UserHeader } from '@/components/user-header';
 import InformacoesAtendimento from './components/sections/InformacoesAtendimento';
 import InformacoesCliente from './components/sections/InformacoesCliente';
 import InformacoesCPE from './components/sections/InformacoesCPE';
@@ -154,23 +154,22 @@ export default function AtendimentoPage() {
                 <div className="absolute bottom-1/3 left-1/3 w-[600px] h-[600px] rounded-full bg-purple-500/10 blur-[150px]"></div>
             </div>
 
-            <header className="relative z-10 flex justify-between items-center p-6 backdrop-blur-md bg-white/10 dark:bg-black/10">
-                <div className="flex items-center gap-4">
+            <UserHeader />
+
+            <main className="relative z-10 container mx-auto max-w-7xl px-4 py-8">
+                <div className="flex items-center mb-6">
                     <Button
                         variant="ghost"
                         size="icon"
                         onClick={() => router.push("/dashboard")}
-                        className="rounded-full bg-gray-200/50 hover:bg-gray-200/80 dark:bg-white/5 dark:hover:bg-white/10 text-gray-700 dark:text-white"
+                        className="rounded-full bg-gray-200/50 hover:bg-gray-200/80 dark:bg-white/5 dark:hover:bg-white/10 text-gray-700 dark:text-white mr-3"
                     >
                         <ArrowLeft className="h-5 w-5" />
                         <span className="sr-only">Voltar</span>
                     </Button>
-                    <Logo height={36} />
-                    <span className="text-xl font-light text-gray-900 dark:text-white ml-2">| Atendimento</span>
+                    <span className="text-xl font-light text-gray-900 dark:text-white">Atendimento</span>
                 </div>
-            </header>
 
-            <main className="relative z-10 container mx-auto max-w-7xl px-4 py-8">
                 <ClientSearch
                     onClientDataFound={handleClientDataFound}
                     atendimento={atendimento}
