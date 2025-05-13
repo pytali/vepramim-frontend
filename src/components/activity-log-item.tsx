@@ -44,14 +44,8 @@ export function ActivityLogItem({ log }: ActivityLogItemProps) {
     }
 
     const checkOnuStatus = () => {
-        if (typeof log.onuData === 'string') {
-            // Extrair o serial da string de onuData
-            const match = log.onuData.match(/SN\/MAC: ([A-Z0-9]+)/i);
-            if (match && match[1]) {
-                router.push(`/onu-search?serial=${match[1]}`);
-            }
-        } else if (log.onuData?.serial) {
-            router.push(`/onu-search?serial=${log.onuData.serial}`);
+        if (log.type === 'onu_search' || log.type === 'onu_activation') {
+            router.push(`/onu-search?serial=${log.onuSerial}&fromLog=true`);
         }
     }
 

@@ -150,14 +150,18 @@ export default function OnuSearch() {
   const [showSignalAlert, setShowSignalAlert] = useState(false)
   const [criticalSignalType, setCriticalSignalType] = useState<string>("")
   const [criticalSignalValue, setCriticalSignalValue] = useState<string>("")
+  const [lastSearchedSN, setLastSearchedSN] = useState<string>("")
 
   useEffect(() => {
     // Verificar se há um parâmetro de busca na URL (quando redireciona do dashboard)
     const serialParam = searchParams.get('serial')
+    const fromLog = searchParams.get('fromLog') === 'true'
+
     if (serialParam) {
       setSearchQuery(serialParam)
       // Executar a busca automaticamente
-      searchBySN(serialParam)
+      // Se vier do log de atividades, evitar registrar novamente
+      searchBySN(serialParam, fromLog)
     }
   }, [searchParams])
 
@@ -169,7 +173,7 @@ export default function OnuSearch() {
     const oltName = olts.find((olt) => olt.device_id === data.olt_id)?.device_name || ''
     const [, , slot, pon] = data.pon_id.split("-")
 
-    const textToCopy = `SN: ${serialNumber}
+    const textToCopy = `SN/MAC: ${serialNumber}
 Sinal ONU RX: ${data.onu_signal?.rx_power && !isNaN(Number(data.onu_signal.rx_power)) ? Number(data.onu_signal.rx_power).toFixed(2) : '--'} dBm
 Sinal OLT RX: ${data.onu_signal?.p_rx_power && !isNaN(Number(data.onu_signal.p_rx_power)) ? Number(data.onu_signal.p_rx_power).toFixed(2) : '--'} dBm
 OLT: ${oltName}
@@ -230,8 +234,15 @@ Modelo ONU/ONT: ${data.onu_type || ''}`
   }
 
   // Busca a ONU pelo número de série
-  const searchBySN = async (sn: string) => {
+  const searchBySN = async (sn: string, fromLog = false) => {
     try {
+      // Evita buscar e logar a mesma ONU duas vezes consecutivas
+      if (lastSearchedSN === sn) {
+        return
+      }
+
+      setLastSearchedSN(sn)
+
       const response = await fetch(`/api/onu/${sn}`)
 
       if (!response.ok) {
@@ -243,21 +254,20 @@ Modelo ONU/ONT: ${data.onu_type || ''}`
       setSerialNumber(sn)
       setOnuData(data)
 
-      // Registrar a consulta no log de atividades
-      if (data?.data && data.data.length > 0) {
+      // Registrar a consulta no log de atividades apenas se não vier do log de atividades
+      if (data?.data && data.data.length > 0 && !fromLog) {
         const onuInfo = data.data[0]
         const [, , slot, pon] = onuInfo.pon_id.split("-")
         const oltName = olts.find((olt) => olt.device_id === onuInfo.olt_id)?.device_name || 'Desconhecida'
 
-        const textToLog = `SN: ${serialNumber}
-        Sinal ONU RX: ${data.onu_signal?.rx_power && !isNaN(Number(data.onu_signal.rx_power)) ? Number(data.onu_signal.rx_power).toFixed(2) : '--'} dBm
-        Sinal OLT RX: ${data.onu_signal?.p_rx_power && !isNaN(Number(data.onu_signal.p_rx_power)) ? Number(data.onu_signal.p_rx_power).toFixed(2) : '--'} dBm
+        const textToLog = `SN/MAC: ${sn}
+        Sinal ONU RX: ${onuInfo.onu_signal?.rx_power && !isNaN(Number(onuInfo.onu_signal.rx_power)) ? Number(onuInfo.onu_signal.rx_power).toFixed(2) : '--'} dBm
+        Sinal OLT RX: ${onuInfo.onu_signal?.p_rx_power && !isNaN(Number(onuInfo.onu_signal.p_rx_power)) ? Number(onuInfo.onu_signal.p_rx_power).toFixed(2) : '--'} dBm
         OLT: ${oltName}
         Slot: ${slot}
         PON: ${pon}
-        Status: ${data.onu_state?.oper_state || ''}
-        Modelo ONU/ONT: ${data.onu_type || ''}`
-
+        Status: ${onuInfo.onu_state?.oper_state || ''}
+        Modelo ONU/ONT: ${onuInfo.onu_type || ''}`
 
         const userInfo = await getCurrentUser();
         const username = userInfo?.username || userInfo?.name || 'sistema';
@@ -273,8 +283,9 @@ Modelo ONU/ONT: ${data.onu_type || ''}`
 
       // Verificar se os sinais estão abaixo do limiar crítico
       if (data?.data && data.data.length > 0 && data.data[0].onu_signal) {
-        const rxPower = Number(data.data[0].onu_signal.rx_power)
-        const pRxPower = Number(data.data[0].onu_signal.p_rx_power)
+        const onuInfo = data.data[0]
+        const rxPower = Number(onuInfo.onu_signal.rx_power)
+        const pRxPower = Number(onuInfo.onu_signal.p_rx_power)
 
         if (rxPower < -26) {
           setCriticalSignalType("Potência ONU RX")
@@ -339,7 +350,7 @@ Modelo ONU/ONT: ${data.onu_type || ''}`
         }
 
         // Agora busca a ONU usando o SN obtido
-        await searchBySN(onuSN)
+        await searchBySN(onuSN, false)
       } else {
         // Se houver múltiplos logins, mostra o seletor
         setAvailableLogins(allLogins)
@@ -368,7 +379,7 @@ Modelo ONU/ONT: ${data.onu_type || ''}`
         await searchByIdContrato(searchQuery)
       } else {
         // Se for alfanumérico, assume que é um SN e busca diretamente
-        await searchBySN(searchQuery)
+        await searchBySN(searchQuery, false)
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Ocorreu um erro durante a busca")
