@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ConnectionType, UnauthOnu } from "@/types/onu";
 import { ChevronLeft, ChevronRight, RefreshCw } from "lucide-react";
 import { Login } from "../types";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useOLTStore } from "@/store/olts";
 
 // Mapeamento de bases para códigos abreviados
@@ -50,7 +50,7 @@ export function Step3ConfigureOnu({
     const [contractData, setContractData] = useState<ContractData | null>(null);
     const { olts, fetchOLTs } = useOLTStore();
 
-    const fetchContractData = async () => {
+    const fetchContractData = useCallback(async () => {
         if (!selectedLogin?.id_contrato) return;
 
         setIsLoading(true);
@@ -79,13 +79,13 @@ export function Step3ConfigureOnu({
         } finally {
             setIsLoading(false);
         }
-    };
+    }, [selectedLogin, setOnuName]);
 
     useEffect(() => {
         if (selectedLogin?.id_contrato) {
             fetchContractData();
         }
-    }, [selectedLogin]);
+    }, [fetchContractData, selectedLogin]);
 
     useEffect(() => {
         // Carregar a lista de OLTs quando o componente for montado
