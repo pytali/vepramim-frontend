@@ -548,7 +548,7 @@ export function WebChat() {
             const script = document.createElement('script');
             script.id = 'opa-webchat-script';
             script.textContent = `
-        (function(i,s,g,r,j,y,b,p,t,z,a){a=s.createElement(r),a.async=1,a.src=g.concat(b,j,b,y,p,j),s.head.appendChild(a),a.onload = function(){opa.init(g,t,z)}})(window,document,'https://opafranquia.brasildigital.net.br','script','js','opa','/','.','68262ed0eb6453c1a020a77f','{"google_credential":"AIzaSyAnqc61Fz2pIlEzrRcd7aVZ3SRlpP3TFlY","google_oauth":"199136104604-5t3ap7a71fdcjru4lg91vcg2bi23oq15.apps.googleusercontent.com","facebook_appid":"","permitir_login_anonimo":"on"}');
+        (function(i,s,g,r,j,y,b,p,t,z,a){a=s.createElement(r),a.async=1,a.src=g.concat(b,j,b,y,p,j),s.head.appendChild(a),a.onload = function(){opa.init(g,t,z)}})(window,document,'https://opafranquia.brasildigital.net.br','script','js','opa','/','.','68262ed0eb6453c1a020a77f','{"google_credential":"AIzaSyAnqc61Fz2pIlEzrRcd7aVZ3SRlpP3TFlY","google_oauth":"199136104604-5t3ap7a71fdcjru4lg91vcg2bi23oq15.apps.googleusercontent.com","facebook_appid":"","permitir_login_anonimo":""}');
       `;
 
             document.head.appendChild(script);
