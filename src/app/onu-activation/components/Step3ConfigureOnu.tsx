@@ -80,9 +80,7 @@ export function Step3ConfigureOnu({
                 // Formatação do login
                 const formattedLogin = login.split("_").length > 2
                     ? login.split("_")[1] + "_" + login.split("_")[2]
-                    : login.split("_")[1]
-                        ? login.split("_")[1]
-                        : login;
+                    : selectedLogin.id_cliente;
 
                 // Formato: {baseCode} - {login} - {endereco} + {numero}
                 const rawName = `${baseCode} - ${formattedLogin} - ${data.endereco} ${data.numero}`;
@@ -188,7 +186,7 @@ export function Step3ConfigureOnu({
                             {contractData && selectedLogin && (
                                 <p className="text-sm text-muted-foreground mt-1">
                                     Gerado a partir dos dados do contrato:
-                                    {` ${BASE_MAPPING[selectedLogin.base || ""] || selectedLogin.base} - ${selectedLogin.login.split("_")[1] ? selectedLogin.login.split("_")[1] : selectedLogin.login} - ${contractData.endereco} ${contractData.numero}`}
+                                    {` ${BASE_MAPPING[selectedLogin.base || ""] || selectedLogin.base} - ${selectedLogin.login.split("_").length > 2 ? selectedLogin.login.split("_")[1] + "_" + selectedLogin.login.split("_")[2] : selectedLogin.id_cliente} - ${contractData.endereco} ${contractData.numero}`}
                                 </p>
                             )}
                         </div>

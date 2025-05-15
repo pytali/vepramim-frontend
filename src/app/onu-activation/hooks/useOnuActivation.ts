@@ -236,7 +236,7 @@ export function useOnuActivation() {
             // Isso dá tempo para que a ONU seja registrada e o sinal estabilize
             setTimeout(() => {
                 checkOnuSignal();
-            }, 50000);
+            }, 40000);
         } catch (err) {
             console.error("Erro ao autorizar ONU:", err);
             setError(err instanceof Error ? err.message : "Falha ao autorizar ONU. Verifique os dados e tente novamente.");

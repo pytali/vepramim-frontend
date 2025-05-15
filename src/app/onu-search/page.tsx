@@ -25,6 +25,16 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { getCurrentUser } from "@/lib/client-auth"
 
+// Declaração de tipo para a API opa global
+declare global {
+  interface Window {
+    opa?: {
+      init: (baseUrl: string, token: string, config: string) => void;
+      openChat?: () => void;
+    };
+  }
+}
+
 interface OnuData {
   data: Array<{
     olt_id: string

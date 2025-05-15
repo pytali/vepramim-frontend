@@ -170,15 +170,15 @@ export function Step4ConfirmAuthorize({
                                     </div>
                                     <p className="text-xl font-medium mt-4 text-blue-700">ONU autorizada, verificando sinal...</p>
                                     <p className="text-sm mt-2 text-gray-500">
-                                        Este processo leva aproximadamente 50 segundos para ser concluído.
+                                        Este processo leva aproximadamente 40 segundos para ser concluído.
                                     </p>
                                 </div>
                             ) : successMessage && !signalError && (
                                 <div className="bg-green-50 p-6 rounded-lg text-center mb-10">
-                                    <div className="h-48 w-48 mx-auto mb-5">
+                                    <div className="h-32 w-32 mx-auto mb-4">
                                         {renderLottie("https://lottie.host/836ceddd-aa49-47ab-9ba6-a74c6d4517c5/AezGcQ8fos.lottie")}
                                     </div>
-                                    <p className="text-2xl font-medium text-green-700">{successMessage}</p>
+                                    <p className="text-lg font-medium text-green-700">{successMessage}</p>
                                 </div>
                             )}
 

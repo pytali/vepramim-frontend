@@ -146,15 +146,21 @@ export default function OnuActivationPage() {
 
                 <UserHeader />
 
+
                 <main className="relative z-10 container mx-auto p-6 pt-8">
                     <div className="flex items-center mb-6">
-                        <Button
+
+
+                        {!isVerifyingSignal && <Button
                             variant="ghost"
                             onClick={() => router.push("/dashboard")}
                             className="rounded-full bg-gray-200/50 hover:bg-gray-200/80 dark:bg-white/5 dark:hover:bg-white/10 text-gray-700 dark:text-white mr-3"
                         >
-                            <ArrowLeft className="h-5 w-5" />
-                        </Button>
+
+                            <ArrowLeft
+                                className="h-5 w-5" />
+
+                        </Button>}
                         <h1 className="text-xl font-medium text-gray-900 dark:text-white">Ativação de ONUs</h1>
                     </div>
 
