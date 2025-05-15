@@ -35,6 +35,7 @@ export default function OnuActivationPage() {
         availableLogins,
         selectedLogin,
         totalSteps,
+        isVerifyingSignal,
         setOnuName,
         setConnectionType,
         setServerType,
@@ -50,6 +51,7 @@ export default function OnuActivationPage() {
         copyOnuDetailsToClipboard,
         handleLoginSelect,
         searchClient,
+        deleteOnu,
     } = useOnuActivation();
 
     const renderStepContent = () => {
@@ -107,10 +109,13 @@ export default function OnuActivationPage() {
                         successMessage={successMessage}
                         signalInfo={signalInfo}
                         copiedToClipboard={copiedToClipboard}
+                        isVerifyingSignal={isVerifyingSignal}
+                        error={error}
                         onPrevious={goToPreviousStep}
                         onAuthorize={authorizeOnu}
                         onCopyDetails={copyOnuDetailsToClipboard}
                         onReset={resetProcess}
+                        onDeleteOnu={deleteOnu}
                     />
                 )
             default:

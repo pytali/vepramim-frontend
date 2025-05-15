@@ -3,6 +3,7 @@ import { AuthorizationOnuRequest, ConnectionType, UnauthOnu, VLAN_MAPPING } from
 import { Login, OnuSignalInfo, RadiusSource } from "../types";
 import { useActivityLogStore } from "@/store/activity-log";
 import { getCurrentUser } from "@/lib/client-auth";
+import { ACCEPTABLE_SIGNAL_THRESHOLD, OPTIMAL_SIGNAL_THRESHOLD } from "@/lib/constants";
 
 // Mapeamento de bases para códigos abreviados
 const BASE_MAPPING: Record<string, string> = {
@@ -31,6 +32,7 @@ export function useOnuActivation() {
     const [showLoginSelector, setShowLoginSelector] = useState(false);
     const [availableLogins, setAvailableLogins] = useState<Login[]>([]);
     const [selectedLogin, setSelectedLogin] = useState<Login | null>(null);
+    const [isVerifyingSignal, setIsVerifyingSignal] = useState(false);
     const totalSteps = 4;
 
     useEffect(() => {
@@ -45,7 +47,8 @@ export function useOnuActivation() {
             const response = await fetch("/api/onu/unauthorized");
 
             if (!response.ok) {
-                throw new Error(`Erro ao buscar ONUs: ${response.status}`);
+                const errorData = await response.json();
+                throw new Error(errorData.error_description || `Erro ao buscar ONUs: ${response.status}`);
             }
 
             const data = await response.json();
@@ -57,7 +60,7 @@ export function useOnuActivation() {
             }
         } catch (err) {
             console.error("Erro ao buscar ONUs não autorizadas:", err);
-            setError("Falha ao carregar ONUs não autorizadas. Tente novamente.");
+            setError(err instanceof Error ? err.message : "Falha ao carregar ONUs não autorizadas. Tente novamente.");
         } finally {
             setLoading(false);
         }
@@ -79,7 +82,8 @@ export function useOnuActivation() {
             const response = await fetch(`/api/onu/${selectedOnu.sn}`);
 
             if (!response.ok) {
-                throw new Error(`Erro ao verificar sinal da ONU: ${response.status}`);
+                const errorData = await response.json();
+                throw new Error(errorData.error_description || `Erro ao verificar sinal da ONU: ${response.status}`);
             }
 
             const data = await response.json();
@@ -102,10 +106,10 @@ export function useOnuActivation() {
                 // Avaliamos com base no pior valor entre os dois
                 const worstSignal = Math.min(p_rx_power, rxPowerValue);
 
-                if (worstSignal < -26) {
+                if (worstSignal < ACCEPTABLE_SIGNAL_THRESHOLD) {
                     status = "critical";
                     setShowSignalWarning(true);
-                } else if (worstSignal < -23) {
+                } else if (worstSignal < OPTIMAL_SIGNAL_THRESHOLD) {
                     status = "acceptable";
                 }
 
@@ -114,6 +118,9 @@ export function useOnuActivation() {
                     p_rx_power: p_rx_power,
                     status: status
                 });
+
+                // Agora que temos o sinal, podemos mostrar a mensagem de sucesso
+                setSuccessMessage(`ONU ${selectedOnu.sn} autorizada com sucesso!`);
 
                 // Atualizar o log com as informações de sinal se temos um log recente desta ONU
                 const updatedLogText = `LEMBRE DE HABILITAR O ACESSO REMOTO!
@@ -134,11 +141,17 @@ export function useOnuActivation() {
                 // Se não conseguir obter o sinal, continuamos com o fluxo normal
                 console.log("Não foi possível obter informações de sinal dos dados retornados:", data);
                 setSignalInfo(null);
+                // Mesmo sem sinal, mostramos a mensagem de sucesso após a tentativa
+                setSuccessMessage(`ONU ${selectedOnu.sn} autorizada com sucesso!`);
             }
         } catch (err) {
             console.error("Erro ao verificar sinal da ONU:", err);
             // Não bloqueamos o fluxo se não conseguir obter o sinal
             setSignalInfo(null);
+            // Mesmo com erro, mostramos a mensagem de sucesso após a tentativa
+            setSuccessMessage(`ONU ${selectedOnu.sn} autorizada com sucesso!`);
+        } finally {
+            setIsVerifyingSignal(false);
         }
     };
 
@@ -148,6 +161,7 @@ export function useOnuActivation() {
         setAuthorizingOnu(selectedOnu.sn);
         setError(null);
         setSuccessMessage(null);
+        setIsVerifyingSignal(false);
 
         try {
             // Preparar payload conforme a documentação da API
@@ -170,7 +184,8 @@ export function useOnuActivation() {
             });
 
             if (!response.ok) {
-                throw new Error(`Erro ao autorizar ONU: ${response.status}`);
+                const errorData = await response.json();
+                throw new Error(errorData.error_description || `Erro ao autorizar ONU: ${response.status}`);
             }
 
             // Extrair slots e portas
@@ -205,7 +220,11 @@ export function useOnuActivation() {
                 user: username
             });
 
-            setSuccessMessage(`ONU ${selectedOnu.sn} autorizada com sucesso!`);
+            // Não mostrar mensagem de sucesso ainda
+            // setSuccessMessage(`ONU ${selectedOnu.sn} autorizada com sucesso!`);
+
+            // Indicar que estamos verificando o sinal
+            setIsVerifyingSignal(true);
 
             // Recarregar a lista após autorização bem-sucedida
             fetchUnauthorizedOnus();
@@ -213,14 +232,15 @@ export function useOnuActivation() {
             // Avançar para o passo de conclusão
             setCurrentStep(totalSteps);
 
-            // Adicionar um atraso de 50 segundos antes de verificar o sinal
+            // Adicionar um atraso antes de verificar o sinal
             // Isso dá tempo para que a ONU seja registrada e o sinal estabilize
             setTimeout(() => {
                 checkOnuSignal();
             }, 50000);
         } catch (err) {
             console.error("Erro ao autorizar ONU:", err);
-            setError("Falha ao autorizar ONU. Verifique os dados e tente novamente.");
+            setError(err instanceof Error ? err.message : "Falha ao autorizar ONU. Verifique os dados e tente novamente.");
+            setIsVerifyingSignal(false);
         } finally {
             setAuthorizingOnu(null);
         }
@@ -366,6 +386,30 @@ export function useOnuActivation() {
         }
     };
 
+    // Adicionar a função deleteOnu
+    const deleteOnu = async (data: { sn: string; oltId: string; ponId: string; serverType: "NETNUMEN" | "UNM" }) => {
+        try {
+            const response = await fetch("/api/onu/delete", {
+                method: "DELETE",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify(data),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error_description || `Erro ao excluir ONU: ${response.status}`);
+            }
+
+            // Recarregar a lista após exclusão bem-sucedida
+            fetchUnauthorizedOnus();
+        } catch (err) {
+            console.error("Erro ao excluir ONU:", err);
+            throw err;
+        }
+    };
+
     return {
         loading,
         authorizingOnu,
@@ -386,6 +430,7 @@ export function useOnuActivation() {
         availableLogins,
         selectedLogin,
         totalSteps,
+        isVerifyingSignal,
         setOnuName,
         setConnectionType,
         setServerType,
@@ -396,6 +441,7 @@ export function useOnuActivation() {
         handleSelectOnu,
         checkOnuSignal,
         authorizeOnu,
+        deleteOnu,
         goToNextStep,
         goToPreviousStep,
         resetProcess,

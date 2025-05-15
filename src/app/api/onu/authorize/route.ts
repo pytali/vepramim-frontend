@@ -47,8 +47,9 @@ export async function POST(request: NextRequest) {
                 }
             }
 
+            const errorData = await response.json()
             return NextResponse.json(
-                { error_description: "Erro ao autorizar ONU" },
+                { error_description: errorData.error_description },
                 { status: response.status }
             )
         }

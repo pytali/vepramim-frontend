@@ -16,6 +16,13 @@ const BASE_MAPPING: Record<string, string> = {
     "ixc.br364telecom.com.br": "BR364"
 };
 
+// Função para normalizar strings removendo acentuação e caracteres especiais
+const normalizeToASCII = (str: string): string => {
+    return str
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, ""); // Remove diacríticos
+};
+
 interface ContractData {
     endereco: string;
     numero: string;
@@ -70,8 +77,19 @@ export function Step3ConfigureOnu({
                     numero: data.numero
                 });
 
+                // Formatação do login
+                const formattedLogin = login.split("_").length > 2
+                    ? login.split("_")[1] + "_" + login.split("_")[2]
+                    : login.split("_")[1]
+                        ? login.split("_")[1]
+                        : login;
+
                 // Formato: {baseCode} - {login} - {endereco} + {numero}
-                const generatedName = `${baseCode} - ${login.split("_").length > 2 ? login.split("_")[1] + "_" + login.split("_")[2] : login.split("_")[1] ? login.split("_")[1] : login} - ${data.endereco} ${data.numero}`;
+                const rawName = `${baseCode} - ${formattedLogin} - ${data.endereco} ${data.numero}`;
+
+                // Normalizar o nome removendo acentuação e caracteres especiais
+                const generatedName = normalizeToASCII(rawName);
+
                 setOnuName(generatedName);
             }
         } catch (error) {

@@ -126,7 +126,8 @@ export const config = {
         "/admin/:path*",
         "/manager/:path*",
         "/technician/:path*",
-        "/onu-activation/:path*"
+        "/onu-activation/:path*",
+        "/atendimentos/:path*"
     ]
 }
 
