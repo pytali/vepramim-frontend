@@ -46,6 +46,9 @@ export async function PUT(request: NextRequest) {
 
     } catch (error) {
         console.error('Erro na API:', error);
+        if (error instanceof Error) {
+            console.error('Erro na API:', error.message);
+        }
         return NextResponse.json(
             { error: 'Erro interno do servidor' },
             { status: 500 }

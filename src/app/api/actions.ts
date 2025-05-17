@@ -13,7 +13,7 @@ interface UpdateClientRadiusBody {
     endpoint: string;
     id_cliente: string;
     id_grupo: string;
-    autenticacao: string;
+    autenticacao: "PPPoE" | "IPoE";
     id_contrato: string;
 }
 
@@ -155,9 +155,11 @@ export async function parseONUSerial(conexao: string): Promise<string | null> {
 export async function updateClientRadius(idRadius: string, body: UpdateClientRadiusBody) {
     const token = await getAuthToken();
 
-    const response = await fetch(`${API_URL}/api/v1/cliente/radius/${idRadius}`, {
+
+    const response = await fetch(`${API_URL}/api/v1/cliente/radius/?id=${idRadius}`, {
         method: 'PUT',
         headers: {
+            'Content-Type': 'application/json',
             Authorization: `Bearer ${token}`
         },
         body: JSON.stringify(body)

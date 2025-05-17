@@ -58,8 +58,13 @@ export function Step4ConfirmAuthorize({
     const [signalError, setSignalError] = useState<string | null>(null);
     const [isDeletingOnu, setIsDeletingOnu] = useState(false);
     const [lottieError, setLottieError] = useState(false);
+    const [isUpdatingLogin, setIsUpdatingLogin] = useState(false);
+    const [loginUpdated, setLoginUpdated] = useState(false);
+    const [toastMessage, setToastMessage] = useState<string | null>(null);
+    const [toastType, setToastType] = useState<'success' | 'error'>('success');
     const containerRef = useRef<HTMLDivElement>(null);
     const hasDeletedOnuRef = useRef<boolean>(false);
+    const hasUpdatedLoginRef = useRef<boolean>(false);
 
     // Função para verificar se o login está no padrão correto
     const isStandardLogin = (login: string, base: string, id_cliente: string): boolean => {
@@ -106,6 +111,69 @@ export function Step4ConfirmAuthorize({
     const willLoginChange = selectedLogin && selectedLogin.login
         ? loginForOnu !== selectedLogin.login
         : false;
+
+    // Função para exibir toast
+    const showToast = (message: string, type: 'success' | 'error' = 'success') => {
+        setToastMessage(message);
+        setToastType(type);
+
+        // Limpar toast após alguns segundos
+        setTimeout(() => {
+            setToastMessage(null);
+        }, 3000);
+    };
+
+    // Função para atualizar o login do cliente
+    const updateClientLogin = async () => {
+        if (!selectedLogin || !willLoginChange || !loginForOnu || hasUpdatedLoginRef.current) {
+            return;
+        }
+
+        try {
+            setIsUpdatingLogin(true);
+            hasUpdatedLoginRef.current = true;
+
+            const response = await fetch(`/api/client/?id=${selectedLogin.id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    login: loginForOnu,
+                    senha: selectedLogin.id_cliente,
+                    endpoint: selectedLogin.base,
+                    id_cliente: selectedLogin.id_cliente,
+                    id_grupo: selectedLogin.id_grupo,
+                    autenticacao: connectionType === "PPPoE" ? "PPPoE" : "IPoE",
+                    id_contrato: selectedLogin.id_contrato
+                })
+            });
+            if (!response.ok) {
+                throw new Error('Falha ao atualizar o login do cliente');
+            }
+
+            setLoginUpdated(true);
+            showToast("Login do cliente atualizado com sucesso", "success");
+        } catch (error) {
+            console.error("Erro ao atualizar login do cliente:", error);
+            showToast("Não foi possível atualizar o login do cliente", "error");
+            // Se houve erro, permitir nova tentativa
+            hasUpdatedLoginRef.current = false;
+        } finally {
+            setIsUpdatingLogin(false);
+        }
+    };
+
+    // Efeito para atualizar o login quando a ONU for ativada com sucesso e o sinal estiver bom
+    useEffect(() => {
+        const handleLoginUpdate = async () => {
+            if (successMessage && !signalError && signalInfo && willLoginChange && !isUpdatingLogin && !loginUpdated) {
+                await updateClientLogin();
+            }
+        };
+
+        handleLoginUpdate();
+    }, [successMessage, signalError, signalInfo]);
 
     // Monitorar e corrigir possíveis erros de lottie
     useEffect(() => {
@@ -163,9 +231,11 @@ export function Step4ConfirmAuthorize({
         }
     }, [signalInfo, onDeleteOnu, selectedOnu, serverType]);
 
-    // Resetar a flag de exclusão quando um novo ONU for selecionado
+    // Resetar as flags quando um novo ONU for selecionado
     useEffect(() => {
         hasDeletedOnuRef.current = false;
+        hasUpdatedLoginRef.current = false;
+        setLoginUpdated(false);
     }, [selectedOnu]);
 
     // Renderiza o componente Lottie com tratamento de erro
@@ -336,7 +406,11 @@ export function Step4ConfirmAuthorize({
                                                 <div className="mt-3 text-sm bg-blue-100 dark:bg-blue-800/50 p-2 rounded">
                                                     <p className="flex items-center text-blue-700 dark:text-blue-300">
                                                         <AlertTriangle className="h-4 w-4 mr-1 flex-shrink-0" />
-                                                        <span>O login foi padronizado de <span className="font-bold">{selectedLogin.login}</span> para <span className="font-bold">{loginForOnu}</span></span>
+                                                        <span>
+                                                            O login foi padronizado de <span className="font-bold">{selectedLogin.login}</span> para <span className="font-bold">{loginForOnu}</span>
+                                                            {loginUpdated && <span className="ml-1 text-green-600 font-medium">(Atualizado)</span>}
+                                                            {isUpdatingLogin && <span className="ml-1 text-blue-600 font-medium">(Atualizando...)</span>}
+                                                        </span>
                                                     </p>
                                                 </div>
                                             )}
@@ -346,7 +420,7 @@ export function Step4ConfirmAuthorize({
                             )}
 
                             <div className="flex justify-center space-x-4">
-                                {isDeletingOnu ? (
+                                {isDeletingOnu || isUpdatingLogin ? (
                                     <Button disabled className="flex items-center">
                                         <div className="mr-2 h-5 w-5">
                                             <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-primary"></div>
@@ -480,6 +554,20 @@ export function Step4ConfirmAuthorize({
                     </>
                 )}
             </CardContent>
+
+            {/* Toast */}
+            {toastMessage && (
+                <div className={`fixed bottom-4 right-4 px-6 py-3 rounded-lg text-white shadow-lg z-50 ${toastType === 'success' ? 'bg-green-500' : 'bg-red-500'}`}>
+                    <div className="flex items-center gap-2">
+                        {toastType === 'success' ? (
+                            <Check className="h-5 w-5" />
+                        ) : (
+                            <AlertTriangle className="h-5 w-5" />
+                        )}
+                        {toastMessage}
+                    </div>
+                </div>
+            )}
         </Card>
     );
 } 

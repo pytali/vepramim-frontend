@@ -16,6 +16,8 @@ export interface Login {
     ultima_conexao_inicial: string;
     endpoint?: string;
     base?: string;
+    id_grupo?: string;
+    id: string;
 }
 
 export interface RadiusSource {
