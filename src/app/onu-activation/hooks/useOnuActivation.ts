@@ -12,6 +12,13 @@ const BASE_MAPPING: Record<string, string> = {
     "ixc.br364telecom.com.br": "BR364"
 };
 
+// Mapeamento das bases para os prefixos de login
+const BASE_LOGIN_MAPPING: Record<string, string> = {
+    "ixc.brasildigital.net.br": "brd",
+    "ixc.candeiasnet.com.br": "cdy",
+    "ixc.br364telecom.com.br": "364"
+};
+
 export function useOnuActivation() {
     const { addLog, updateOnuLog } = useActivityLogStore();
     const [loading, setLoading] = useState(false);
@@ -33,7 +40,84 @@ export function useOnuActivation() {
     const [availableLogins, setAvailableLogins] = useState<Login[]>([]);
     const [selectedLogin, setSelectedLogin] = useState<Login | null>(null);
     const [isVerifyingSignal, setIsVerifyingSignal] = useState(false);
+    const [loginSuffix, setLoginSuffix] = useState<number | null>(null);
+    const [checkingLogin, setCheckingLogin] = useState(false);
+    const [standardLogin, setStandardLogin] = useState<string>("");
     const totalSteps = 4;
+
+    // Função para verificar se o login está no padrão correto
+    const isStandardLogin = (login: string, base: string, id_cliente: string): boolean => {
+        const basePrefix = BASE_LOGIN_MAPPING[base];
+        if (!basePrefix) return true; // Se não temos mapeamento, consideramos como padrão
+        const expectedPattern = `${basePrefix}_${id_cliente}`;
+        return login.startsWith(expectedPattern);
+    };
+
+    // Função para gerar o novo login no padrão correto
+    const getStandardLogin = (base: string, id_cliente: string): string => {
+        const basePrefix = BASE_LOGIN_MAPPING[base];
+        if (!basePrefix) return ""; // Se não temos mapeamento, retornamos vazio
+        return `${basePrefix}_${id_cliente}`;
+    };
+
+    // Verifica se existe login duplicado e determina o sufixo necessário
+    const checkExistingLogins = async (base: string, id_cliente: string): Promise<void> => {
+        if (!base || !id_cliente) return;
+
+        const basePrefix = BASE_LOGIN_MAPPING[base];
+        if (!basePrefix) return;
+
+        setCheckingLogin(true);
+        try {
+            // Verifica se o login já existe
+            const response = await fetch(`/api/login/check?basePrefix=${basePrefix}&idCliente=${id_cliente}`);
+
+            if (!response.ok) {
+                throw new Error("Erro ao verificar logins existentes");
+            }
+
+            const data = await response.json();
+
+            setStandardLogin(data.login);
+            setLoginSuffix(data.suffix);
+
+        } catch (error) {
+            console.error("Erro ao verificar logins duplicados:", error);
+        } finally {
+            setCheckingLogin(false);
+        }
+    };
+
+    // Função para obter o login final com sufixo quando necessário
+    const getFinalLogin = (): string => {
+        if (!standardLogin) return selectedLogin?.login || "N/A";
+
+        // Se tem sufixo, adiciona ao login padrão
+        if (loginSuffix) {
+            return `${standardLogin}_${loginSuffix}`;
+        }
+
+        return standardLogin;
+    };
+
+    // Função para obter o login padronizado quando necessário
+    const getLoginForOnu = (): string => {
+        if (!selectedLogin || !selectedLogin.base || !selectedLogin.id_cliente) {
+            return selectedLogin?.login || "N/A";
+        }
+
+        // Usar o login final com sufixo se disponível
+        if (standardLogin) {
+            return getFinalLogin();
+        }
+
+        // Verificar se o login precisa ser padronizado
+        if (!isStandardLogin(selectedLogin.login, selectedLogin.base, selectedLogin.id_cliente)) {
+            return getStandardLogin(selectedLogin.base, selectedLogin.id_cliente);
+        }
+
+        return selectedLogin.login;
+    };
 
     useEffect(() => {
         fetchUnauthorizedOnus();
@@ -122,6 +206,9 @@ export function useOnuActivation() {
                 // Agora que temos o sinal, podemos mostrar a mensagem de sucesso
                 setSuccessMessage(`ONU ${selectedOnu.sn} autorizada com sucesso!`);
 
+                // Obter o login correto para o log (padronizado se necessário)
+                const loginToUse = getLoginForOnu();
+
                 // Atualizar o log com as informações de sinal se temos um log recente desta ONU
                 const updatedLogText = `LEMBRE DE HABILITAR O ACESSO REMOTO!
 •⁠  SN/MAC: ${selectedOnu.sn}
@@ -129,8 +216,8 @@ export function useOnuActivation() {
 •⁠  SLOT: ${selectedOnu.ponId.split("-")[2] || "N/A"}
 •⁠  PON: ${selectedOnu.ponId.split("-")[3] || "N/A"}
 •⁠  ⁠BASE: ${BASE_MAPPING[selectedLogin?.base || ""] || "N/A"}
-•⁠  ⁠LOGIN: ${selectedLogin?.login || "N/A"}
-•⁠  ⁠SENHA: ${selectedLogin?.senha || "N/A"}
+•⁠  ⁠LOGIN: ${loginToUse}
+•⁠  ⁠SENHA: ${selectedLogin?.id_cliente || "N/A"}
 •⁠  ⁠Sinal OLT→ONU: ${rxPowerValue.toFixed(2)} dBm
 •⁠  ⁠Sinal ONU→OLT: ${p_rx_power.toFixed(2)} dBm
 •⁠  ⁠VLAN: ${VLAN_MAPPING[connectionType]}`;
@@ -192,6 +279,8 @@ export function useOnuActivation() {
             const slot = selectedOnu.ponId.split("-")[2] || "N/A";
             const pon = selectedOnu.ponId.split("-")[3] || "N/A";
             const baseCode = BASE_MAPPING[selectedLogin?.base || ""] || "N/A";
+            // Obter o login correto (padronizado se necessário)
+            const loginToUse = getLoginForOnu();
 
             // Montar o texto completo para o log
             const logText = `LEMBRE DE HABILITAR O ACESSO REMOTO!
@@ -200,8 +289,8 @@ export function useOnuActivation() {
 •⁠  SLOT: ${slot}
 •⁠  PON: ${pon}
 •⁠  ⁠BASE: ${baseCode}
-•⁠  ⁠LOGIN: ${selectedLogin?.login || "N/A"}
-•⁠  ⁠SENHA: ${selectedLogin?.senha || "N/A"}
+•⁠  ⁠LOGIN: ${loginToUse}
+•⁠  ⁠SENHA: ${selectedLogin?.id_cliente || "N/A"}
 •⁠  ⁠Sinal OLT→ONU: N/A dBm
 •⁠  ⁠Sinal ONU→OLT: N/A dBm
 •⁠  ⁠VLAN: ${VLAN_MAPPING[connectionType]}`;
@@ -273,20 +362,28 @@ export function useOnuActivation() {
     const copyOnuDetailsToClipboard = () => {
         if (!selectedOnu) return;
 
-        // Obter os mesmos dados usados no onuData
-        const slot = selectedOnu.ponId.split("-")[2] || "N/A";
-        const pon = selectedOnu.ponId.split("-")[3] || "N/A";
+        // Extrair informações do OLT/PON
+        const oltInfo = selectedOnu.oltName?.split(':') || ['', ''];
+        const oltName = oltInfo[0] || selectedOnu.oltIp;
+        const ponParts = selectedOnu.ponId?.split('/') || selectedOnu.ponId?.split('-') || ['', ''];
+        const slot = ponParts[0];
+        const pon = ponParts[1];
+
+        // Obter o prefixo da base
         const baseCode = BASE_MAPPING[selectedLogin?.base || ""] || "N/A";
+
+        // Obter o login correto (padronizado se necessário)
+        const loginToUse = getLoginForOnu();
 
         // Criar texto com o mesmo formato do logText, adicionando informações de sinal e VLAN
         const textToCopy = `LEMBRE DE HABILITAR O ACESSO REMOTO!
 •⁠  SN/MAC: ${selectedOnu.sn}
-•⁠  OLT: ${selectedOnu.oltName}
+•⁠  OLT: ${oltName} - ${selectedOnu.oltIp}
 •⁠  SLOT: ${slot}
 •⁠  PON: ${pon}
 •⁠  ⁠BASE: ${baseCode}
-•⁠  ⁠LOGIN: ${selectedLogin?.login || "N/A"}
-•⁠  ⁠SENHA: ${selectedLogin?.senha || "N/A"}
+•⁠  ⁠LOGIN: ${loginToUse}
+•⁠  ⁠SENHA: ${selectedLogin?.id_cliente || "N/A"}
 •⁠  ⁠Sinal OLT→ONU: ${signalInfo ? signalInfo.rxPower.toFixed(2) : "N/A"} dBm
 •⁠  ⁠Sinal ONU→OLT: ${signalInfo ? signalInfo.p_rx_power.toFixed(2) : "N/A"} dBm
 •⁠  ⁠VLAN: ${VLAN_MAPPING[connectionType]}`;
@@ -303,15 +400,22 @@ export function useOnuActivation() {
     };
 
     // Processa um login selecionado pelo usuário
-    const handleLoginSelect = (selectedLogin: Login) => {
+    const handleLoginSelect = (login: Login) => {
         setShowLoginSelector(false);
-        setSelectedLogin(selectedLogin);
+        setSelectedLogin(login);
+        setLoginSuffix(null); // Resetar o sufixo
+        setStandardLogin(""); // Resetar o login padronizado
+
+        // Verificar a possibilidade de login duplicado
+        if (login.base && login.id_cliente) {
+            checkExistingLogins(login.base, login.id_cliente);
+        }
 
         // Atualizar o nome da ONU com base nos dados do login
-        if (selectedLogin.base && selectedLogin.login) {
+        if (login.base && login.login) {
             // Obter o código abreviado da base ou usar a base original se não tiver mapeamento
-            const baseCode = BASE_MAPPING[selectedLogin.base] || selectedLogin.base;
-            setOnuName(`${baseCode} - ${selectedLogin.login.toUpperCase()}`);
+            const baseCode = BASE_MAPPING[login.base] || login.base;
+            setOnuName(`${baseCode} - ${login.login.toUpperCase()}`);
         }
     };
 
@@ -429,24 +533,26 @@ export function useOnuActivation() {
         showLoginSelector,
         availableLogins,
         selectedLogin,
-        totalSteps,
         isVerifyingSignal,
+        totalSteps,
+        loginSuffix,
+        standardLogin,
+        checkingLogin,
         setOnuName,
         setConnectionType,
         setServerType,
         setShowSignalWarning,
-        setSearchQuery,
         setShowLoginSelector,
+        setSearchQuery,
         fetchUnauthorizedOnus,
         handleSelectOnu,
-        checkOnuSignal,
         authorizeOnu,
-        deleteOnu,
         goToNextStep,
         goToPreviousStep,
         resetProcess,
         copyOnuDetailsToClipboard,
         handleLoginSelect,
         searchClient,
+        deleteOnu
     };
 } 

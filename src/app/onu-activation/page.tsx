@@ -36,6 +36,9 @@ export default function OnuActivationPage() {
         selectedLogin,
         totalSteps,
         isVerifyingSignal,
+        loginSuffix,
+        standardLogin,
+        checkingLogin,
         setOnuName,
         setConnectionType,
         setServerType,
@@ -77,6 +80,9 @@ export default function OnuActivationPage() {
                         searchingClient={searchingClient}
                         error={error}
                         selectedLogin={selectedLogin}
+                        loginSuffix={loginSuffix}
+                        standardLogin={standardLogin}
+                        checkingLogin={checkingLogin}
                         onSearchClient={searchClient}
                         onPrevious={goToPreviousStep}
                         onNext={goToNextStep}
@@ -111,6 +117,8 @@ export default function OnuActivationPage() {
                         copiedToClipboard={copiedToClipboard}
                         isVerifyingSignal={isVerifyingSignal}
                         error={error}
+                        loginSuffix={loginSuffix}
+                        standardLogin={standardLogin}
                         onPrevious={goToPreviousStep}
                         onAuthorize={authorizeOnu}
                         onCopyDetails={copyOnuDetailsToClipboard}

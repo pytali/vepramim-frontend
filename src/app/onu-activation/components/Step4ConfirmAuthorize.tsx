@@ -7,6 +7,13 @@ import { useEffect, useState, useRef } from "react";
 import { DotLottieReact } from '@lottiefiles/dotlottie-react';
 import { ACCEPTABLE_SIGNAL_THRESHOLD, CRITICAL_SIGNAL_THRESHOLD, OPTIMAL_SIGNAL_THRESHOLD } from "@/lib/constants";
 
+// Mapeamento das bases para os prefixos de login
+const BASE__LOGIN_MAPPING: Record<string, string> = {
+    "ixc.brasildigital.net.br": "brd",
+    "ixc.candeiasnet.com.br": "cdy",
+    "ixc.br364telecom.com.br": "364"
+};
+
 interface Step4Props {
     selectedOnu: UnauthOnu | null;
     selectedLogin: Login | null;
@@ -19,6 +26,8 @@ interface Step4Props {
     copiedToClipboard: boolean;
     isVerifyingSignal: boolean;
     error: string | null;
+    loginSuffix: number | null;
+    standardLogin: string;
     onPrevious: () => void;
     onAuthorize: () => void;
     onCopyDetails: () => void;
@@ -38,6 +47,8 @@ export function Step4ConfirmAuthorize({
     copiedToClipboard,
     isVerifyingSignal,
     error,
+    loginSuffix,
+    standardLogin,
     onPrevious,
     onAuthorize,
     onCopyDetails,
@@ -49,6 +60,52 @@ export function Step4ConfirmAuthorize({
     const [lottieError, setLottieError] = useState(false);
     const containerRef = useRef<HTMLDivElement>(null);
     const hasDeletedOnuRef = useRef<boolean>(false);
+
+    // Função para verificar se o login está no padrão correto
+    const isStandardLogin = (login: string, base: string, id_cliente: string): boolean => {
+        const basePrefix = BASE__LOGIN_MAPPING[base];
+        if (!basePrefix) return true; // Se não temos mapeamento, consideramos como padrão
+        const expectedPattern = `${basePrefix}_${id_cliente}`;
+        return login.startsWith(expectedPattern);
+    };
+
+    // Função para gerar o novo login no padrão correto
+    const getStandardLogin = (base: string, id_cliente: string): string => {
+        const basePrefix = BASE__LOGIN_MAPPING[base];
+        if (!basePrefix) return ""; // Se não temos mapeamento, retornamos vazio
+        return `${basePrefix}_${id_cliente}`;
+    };
+
+    // Função para obter o login padronizado com sufixo quando necessário
+    const getFinalLogin = (): string => {
+        // Se já temos o login padrão e o sufixo determinados
+        if (standardLogin) {
+            // Se tem sufixo, adiciona ao login padrão
+            if (loginSuffix) {
+                return `${standardLogin}_${loginSuffix}`;
+            }
+            return standardLogin;
+        }
+
+        // Fallback para a lógica antiga
+        if (selectedLogin && selectedLogin.base && selectedLogin.id_cliente) {
+            if (isStandardLogin(selectedLogin.login, selectedLogin.base, selectedLogin.id_cliente)) {
+                return selectedLogin.login;
+            } else {
+                return getStandardLogin(selectedLogin.base, selectedLogin.id_cliente);
+            }
+        }
+
+        return selectedLogin?.login || "";
+    };
+
+    // Verificar se o login está no padrão correto e obter o login padrão se necessário
+    const loginForOnu = getFinalLogin();
+
+    // Determinar se o login será alterado
+    const willLoginChange = selectedLogin && selectedLogin.login
+        ? loginForOnu !== selectedLogin.login
+        : false;
 
     // Monitorar e corrigir possíveis erros de lottie
     useEffect(() => {
@@ -212,51 +269,80 @@ export function Step4ConfirmAuthorize({
                             )}
 
                             {signalInfo && !signalError && (
-                                <div className="p-4 rounded-lg bg-primary/5 border border-primary/20 mb-6">
-                                    <h3 className="font-medium text-center mb-4">Informações do Sinal</h3>
-                                    <div className="space-y-3">
-                                        <div className="flex justify-between items-center">
-                                            <span>Sinal OLT→ONU:</span>
-                                            <div className="flex items-center gap-2">
-                                                <span className={`font-semibold 
-                                                ${signalInfo.rxPower > OPTIMAL_SIGNAL_THRESHOLD ? "text-green-600" :
-                                                        signalInfo.rxPower > ACCEPTABLE_SIGNAL_THRESHOLD ? "text-amber-600" : "text-red-600"}`}>
-                                                    {signalInfo.rxPower.toFixed(2)} dBm
-                                                </span>
-                                                <div className={`w-3 h-3 rounded-full 
-                                                ${signalInfo.rxPower > OPTIMAL_SIGNAL_THRESHOLD ? "bg-green-600" :
-                                                        signalInfo.rxPower > ACCEPTABLE_SIGNAL_THRESHOLD ? "bg-amber-600" : "bg-red-600"}`} />
+                                <>
+                                    <div className="p-4 rounded-lg bg-primary/5 border border-primary/20 mb-6">
+                                        <h3 className="font-medium text-center mb-4">Informações do Sinal</h3>
+                                        <div className="space-y-3">
+                                            <div className="flex justify-between items-center">
+                                                <span>Sinal OLT→ONU:</span>
+                                                <div className="flex items-center gap-2">
+                                                    <span className={`font-semibold 
+                                                    ${signalInfo.rxPower > OPTIMAL_SIGNAL_THRESHOLD ? "text-green-600" :
+                                                            signalInfo.rxPower > ACCEPTABLE_SIGNAL_THRESHOLD ? "text-amber-600" : "text-red-600"}`}>
+                                                        {signalInfo.rxPower.toFixed(2)} dBm
+                                                    </span>
+                                                    <div className={`w-3 h-3 rounded-full 
+                                                    ${signalInfo.rxPower > OPTIMAL_SIGNAL_THRESHOLD ? "bg-green-600" :
+                                                            signalInfo.rxPower > ACCEPTABLE_SIGNAL_THRESHOLD ? "bg-amber-600" : "bg-red-600"}`} />
+                                                </div>
                                             </div>
-                                        </div>
-                                        <div className="flex justify-between items-center">
-                                            <span>Sinal ONU→OLT:</span>
-                                            <div className="flex items-center gap-2">
-                                                <span className={`font-semibold 
-                                                ${signalInfo.p_rx_power > OPTIMAL_SIGNAL_THRESHOLD ? "text-green-600" :
-                                                        signalInfo.p_rx_power > ACCEPTABLE_SIGNAL_THRESHOLD ? "text-amber-600" : "text-red-600"}`}>
-                                                    {signalInfo.p_rx_power.toFixed(2)} dBm
-                                                </span>
-                                                <div className={`w-3 h-3 rounded-full 
-                                                ${signalInfo.p_rx_power > OPTIMAL_SIGNAL_THRESHOLD ? "bg-green-600" :
-                                                        signalInfo.p_rx_power > ACCEPTABLE_SIGNAL_THRESHOLD ? "bg-amber-600" : "bg-red-600"}`} />
+                                            <div className="flex justify-between items-center">
+                                                <span>Sinal ONU→OLT:</span>
+                                                <div className="flex items-center gap-2">
+                                                    <span className={`font-semibold 
+                                                    ${signalInfo.p_rx_power > OPTIMAL_SIGNAL_THRESHOLD ? "text-green-600" :
+                                                            signalInfo.p_rx_power > ACCEPTABLE_SIGNAL_THRESHOLD ? "text-amber-600" : "text-red-600"}`}>
+                                                        {signalInfo.p_rx_power.toFixed(2)} dBm
+                                                    </span>
+                                                    <div className={`w-3 h-3 rounded-full 
+                                                    ${signalInfo.p_rx_power > OPTIMAL_SIGNAL_THRESHOLD ? "bg-green-600" :
+                                                            signalInfo.p_rx_power > ACCEPTABLE_SIGNAL_THRESHOLD ? "bg-amber-600" : "bg-red-600"}`} />
+                                                </div>
                                             </div>
-                                        </div>
-                                        <div className="flex justify-between items-center">
-                                            <span>Status Geral:</span>
-                                            <div className="flex items-center gap-2">
-                                                <span className={`font-semibold 
-                                            ${signalInfo.status === "optimal" ? "text-green-600" :
-                                                        signalInfo.status === "acceptable" ? "text-amber-600" : "text-red-600"}`}>
-                                                    {signalInfo.status === "optimal" ? "Ótimo" :
-                                                        signalInfo.status === "acceptable" ? "Aceitável" : "Crítico"}
-                                                </span>
-                                                <div className={`w-3 h-3 rounded-full 
-                                            ${signalInfo.status === "optimal" ? "bg-green-600" :
-                                                        signalInfo.status === "acceptable" ? "bg-amber-600" : "bg-red-600"}`} />
+                                            <div className="flex justify-between items-center">
+                                                <span>Status Geral:</span>
+                                                <div className="flex items-center gap-2">
+                                                    <span className={`font-semibold 
+                                                ${signalInfo.status === "optimal" ? "text-green-600" :
+                                                            signalInfo.status === "acceptable" ? "text-amber-600" : "text-red-600"}`}>
+                                                        {signalInfo.status === "optimal" ? "Ótimo" :
+                                                            signalInfo.status === "acceptable" ? "Aceitável" : "Crítico"}
+                                                    </span>
+                                                    <div className={`w-3 h-3 rounded-full 
+                                                ${signalInfo.status === "optimal" ? "bg-green-600" :
+                                                            signalInfo.status === "acceptable" ? "bg-amber-600" : "bg-red-600"}`} />
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
-                                </div>
+
+                                    {/* Seção para mostrar as credenciais da ONU */}
+                                    {selectedLogin && loginForOnu && (
+                                        <div className="mb-6 p-4 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
+                                            <h3 className="font-medium text-blue-800 dark:text-blue-300 text-center mb-3">
+                                                Credenciais para Configuração
+                                            </h3>
+                                            <div className="grid grid-cols-2 gap-3">
+                                                <div className="text-blue-700 dark:text-blue-400 font-medium">Login:</div>
+                                                <div className="font-mono font-semibold text-blue-700 dark:text-blue-300">
+                                                    {loginForOnu}
+                                                </div>
+                                                <div className="text-blue-700 dark:text-blue-400 font-medium">Senha:</div>
+                                                <div className="font-mono font-semibold text-blue-700 dark:text-blue-300">
+                                                    {selectedLogin.id_cliente}
+                                                </div>
+                                            </div>
+                                            {willLoginChange && (
+                                                <div className="mt-3 text-sm bg-blue-100 dark:bg-blue-800/50 p-2 rounded">
+                                                    <p className="flex items-center text-blue-700 dark:text-blue-300">
+                                                        <AlertTriangle className="h-4 w-4 mr-1 flex-shrink-0" />
+                                                        <span>O login foi padronizado de <span className="font-bold">{selectedLogin.login}</span> para <span className="font-bold">{loginForOnu}</span></span>
+                                                    </p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+                                </>
                             )}
 
                             <div className="flex justify-center space-x-4">
@@ -334,12 +420,34 @@ export function Step4ConfirmAuthorize({
                                             <>
                                                 <div className="text-muted-foreground">Cliente:</div>
                                                 <div className="font-medium">
-                                                    {selectedLogin.id_contrato} - {selectedLogin.base}
+                                                    {selectedLogin.id_cliente} - {selectedLogin.base}
                                                 </div>
                                             </>
                                         )}
                                     </div>
                                 </div>
+
+                                {selectedLogin && (
+                                    <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
+                                        <h3 className="font-medium text-blue-800 dark:text-blue-300 mb-2">
+                                            Login para configuração da ONU
+                                        </h3>
+                                        <div className="text-lg font-mono font-semibold text-blue-700 dark:text-blue-300 bg-blue-100 dark:bg-blue-800/50 p-2 rounded text-center mb-2">
+                                            {loginForOnu}
+                                        </div>
+                                        {willLoginChange && (
+                                            <div className="text-sm text-blue-600 dark:text-blue-400">
+                                                <p className="flex items-center">
+                                                    <AlertTriangle className="h-4 w-4 mr-1 inline" />
+                                                    O login será ajustado para o padrão da empresa.
+                                                </p>
+                                                <p>
+                                                    Login original: <span className="font-medium">{selectedLogin.login}</span>
+                                                </p>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
 
                                 <div className="flex justify-between mt-6">
                                     <Button

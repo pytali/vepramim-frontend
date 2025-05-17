@@ -13,10 +13,19 @@ interface Step2Props {
     searchingClient: boolean;
     error: string | null;
     selectedLogin: Login | null;
+    loginSuffix: number | null;
+    standardLogin: string;
+    checkingLogin: boolean;
     onSearchClient: () => void;
     onPrevious: () => void;
     onNext: () => void;
 }
+
+const BASE__LOGIN_MAPPING: Record<string, string> = {
+    "ixc.brasildigital.net.br": "brd",
+    "ixc.candeiasnet.com.br": "cdy",
+    "ixc.br364telecom.com.br": "364"
+};
 
 export function Step2AssociateClient({
     selectedOnu,
@@ -25,10 +34,50 @@ export function Step2AssociateClient({
     searchingClient,
     error,
     selectedLogin,
+    loginSuffix,
+    standardLogin,
+    checkingLogin,
     onSearchClient,
     onPrevious,
     onNext
 }: Step2Props) {
+    // Função para verificar se o login está no padrão correto
+    const isStandardLogin = (login: string, base: string, id_cliente: string) => {
+        const basePrefix = BASE__LOGIN_MAPPING[base];
+        const expectedPattern = `${basePrefix}_${id_cliente}`;
+        return login.startsWith(expectedPattern);
+    };
+
+    // Função para gerar o novo login no padrão correto
+    const getNewLoginFormat = (base: string, id_cliente: string) => {
+        const basePrefix = BASE__LOGIN_MAPPING[base];
+        return `${basePrefix}_${id_cliente}`;
+    };
+
+    // Verifica se o login segue o padrão
+    const isLoginStandard = selectedLogin &&
+        selectedLogin.login &&
+        selectedLogin.base &&
+        selectedLogin.id_cliente &&
+        isStandardLogin(
+            selectedLogin.login,
+            selectedLogin.base,
+            selectedLogin.id_cliente
+        );
+
+    // Função para obter o formato final de login com sufixo se necessário
+    const getFinalLoginFormat = () => {
+        if (!standardLogin) {
+            if (selectedLogin?.base && selectedLogin?.id_cliente) {
+                const baseLogin = getNewLoginFormat(selectedLogin.base, selectedLogin.id_cliente);
+                return loginSuffix ? `${baseLogin}_${loginSuffix}` : baseLogin;
+            }
+            return "Formatando login...";
+        }
+
+        return loginSuffix ? `${standardLogin}_${loginSuffix}` : standardLogin;
+    };
+
     return (
         <Card className="w-full max-w-2xl mx-auto">
             <CardContent className="p-6">
@@ -78,6 +127,11 @@ export function Step2AssociateClient({
                             <p className="text-sm text-muted-foreground">
                                 Digite o ID do Cliente para associar.
                             </p>
+                            <div className="text-sm text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 p-3 rounded-md border border-amber-200 dark:border-amber-800">
+                                <p className="font-medium">Aviso importante:</p>
+                                <p>O login do cliente será automaticamente ajustado para o padrão <span className="font-mono">{'{BASE}_{id_cliente}'}</span> caso esteja em formato diferente.</p>
+                                <p>Se já existirem logins duplicados, serão adicionados sufixos como <span className="font-mono">_2</span>, <span className="font-mono">_3</span>, etc.</p>
+                            </div>
                         </div>
 
                         {error && (
@@ -100,6 +154,42 @@ export function Step2AssociateClient({
                                     <div className="text-green-700 dark:text-green-400">Base:</div>
                                     <div>{selectedLogin.base}</div>
                                 </div>
+
+                                {selectedLogin.login && selectedLogin.base && selectedLogin.id_cliente && (
+                                    <div className="mt-3 p-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded">
+                                        {checkingLogin ? (
+                                            <div className="flex items-center text-sm text-blue-700 dark:text-blue-400">
+                                                <Loader2 className="h-3 w-3 mr-2 animate-spin" />
+                                                Verificando disponibilidade do login...
+                                            </div>
+                                        ) : !isLoginStandard ? (
+                                            <>
+                                                <p className="text-sm text-blue-700 dark:text-blue-400">
+                                                    <span className="font-medium">Atenção:</span> O login atual não segue o padrão recomendado.
+                                                </p>
+                                                <p className="text-sm text-blue-700 dark:text-blue-400">
+                                                    Novo formato de login: <span className="font-mono font-medium">{getFinalLoginFormat()}</span>
+                                                    {loginSuffix && (
+                                                        <span className="ml-1">(com sufixo <span className="font-mono">_{loginSuffix}</span> para evitar duplicação)</span>
+                                                    )}
+                                                </p>
+                                            </>
+                                        ) : loginSuffix ? (
+                                            <>
+                                                <p className="text-sm text-blue-700 dark:text-blue-400">
+                                                    <span className="font-medium">Atenção:</span> Já existem logins com este padrão.
+                                                </p>
+                                                <p className="text-sm text-blue-700 dark:text-blue-400">
+                                                    Será utilizado o sufixo <span className="font-mono">_{loginSuffix}</span>: <span className="font-mono font-medium">{getFinalLoginFormat()}</span>
+                                                </p>
+                                            </>
+                                        ) : (
+                                            <p className="text-sm text-blue-700 dark:text-blue-400">
+                                                <span className="font-medium">Login verificado:</span> O formato está de acordo com o padrão recomendado.
+                                            </p>
+                                        )}
+                                    </div>
+                                )}
                             </div>
                         )}
 

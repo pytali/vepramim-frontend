@@ -6,6 +6,18 @@ const API_PASSWORD = process.env.API_PASSWORD
 
 let authToken: string | null = null;
 
+
+interface UpdateClientRadiusBody {
+    login: string;
+    senha: string;
+    endpoint: string;
+    id_cliente: string;
+    id_grupo: string;
+    autenticacao: string;
+    id_contrato: string;
+}
+
+
 async function getAuthToken(): Promise<string> {
     if (authToken) {
         return authToken;
@@ -138,4 +150,68 @@ export async function parseONUSerial(conexao: string): Promise<string | null> {
     }
 
     return null;
-} 
+}
+
+export async function updateClientRadius(idRadius: string, body: UpdateClientRadiusBody) {
+    const token = await getAuthToken();
+
+    const response = await fetch(`${API_URL}/api/v1/cliente/radius/${idRadius}`, {
+        method: 'PUT',
+        headers: {
+            Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify(body)
+    });
+
+    if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData || 'Erro ao atualizar dados do radius');
+    }
+
+    return response.json();
+}
+
+// Função para verificar logins existentes com o mesmo padrão
+export async function checkExistingLogins(basePrefix: string, idCliente: string) {
+    try {
+        const token = await getAuthToken();
+        const standardLogin = `${basePrefix}_${idCliente}`;
+
+        // Busca por logins similares
+        const response = await fetch(`${API_URL}/api/v1/cliente/radius/?login=${standardLogin}`, {
+            headers: {
+                Authorization: `Bearer ${token}`
+            },
+            cache: 'no-store'
+        });
+
+        if (!response.ok) {
+            throw new Error('Erro ao verificar logins existentes');
+        }
+
+        const data = await response.json();
+
+        // Se não tiver logins existentes, não precisa de sufixo
+        if (!data.data || data.data.length === 0) {
+            return { login: standardLogin, suffix: null, existingLogins: [] };
+        }
+
+        // Lista de logins existentes que seguem o padrão
+        const existingLogins = data.data.map((item: { login: string }) => item.login);
+
+        // Verifica qual sufixo usar
+        let suffix = 2;
+        while (existingLogins.includes(`${standardLogin}_${suffix}`)) {
+            suffix++;
+        }
+
+        return {
+            login: standardLogin,
+            suffix,
+            existingLogins
+        };
+    } catch (error) {
+        console.error('Erro ao verificar logins existentes:', error);
+        throw error;
+    }
+}

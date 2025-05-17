@@ -16,6 +16,13 @@ const BASE_MAPPING: Record<string, string> = {
     "ixc.br364telecom.com.br": "BR364"
 };
 
+// Mapeamento de endpoints para bases
+const ENDPOINT_MAPPING: Record<string, string> = {
+    "https://ixc.brasildigital.net.br/webservice/v1/cliente_contrato": "ixc.brasildigital.net.br",
+    "https://ixc.candeiasnet.com.br/webservice/v1/cliente_contrato": "ixc.candeiasnet.com.br",
+    "https://ixc.br364telecom.com.br/webservice/v1/cliente_contrato": "ixc.br364telecom.com.br"
+};
+
 // Função para normalizar strings removendo acentuação e caracteres especiais
 const normalizeToASCII = (str: string): string => {
     return str
@@ -26,6 +33,24 @@ const normalizeToASCII = (str: string): string => {
 interface ContractData {
     endereco: string;
     numero: string;
+}
+
+// Interface para dados da resposta da API
+interface ContractResponse {
+    contratos: Array<{
+        endereco: string;
+        numero: string;
+        id: string;
+        id_cliente: string;
+        status: string;
+        // Adicionando outros campos conhecidos
+        contrato: string;
+        bairro: string;
+        complemento: string;
+        cep: string;
+        cidade: string;
+    }>;
+    endpoint: string;
 }
 
 interface Step3Props {
@@ -66,29 +91,48 @@ export function Step3ConfigureOnu({
             const result = await response.json();
 
             if (result && !result.error) {
-                const data = result.data;
+                let data;
 
-                // Obter o código da base usando o mapping
-                const baseCode = BASE_MAPPING[selectedLogin.base || ""] || selectedLogin.base || "";
-                const login = selectedLogin.login || "";
+                // Verificar se a resposta contém um array de múltiplas bases
+                if (Array.isArray(result.data)) {
+                    // Encontrar a base correspondente ao selectedLogin.base
+                    const baseData = result.data.find((item: ContractResponse) => {
+                        const baseFromEndpoint = ENDPOINT_MAPPING[item.endpoint];
+                        return baseFromEndpoint === selectedLogin.base;
+                    });
 
-                setContractData({
-                    endereco: data.endereco,
-                    numero: data.numero
-                });
+                    // Se encontrou a base correspondente, use o primeiro contrato dela
+                    if (baseData && baseData.contratos && baseData.contratos.length > 0) {
+                        data = baseData.contratos[0];
+                    }
+                } else {
+                    // Formato antigo - dados diretamente no result.data
+                    data = result.data;
+                }
 
-                // Formatação do login
-                const formattedLogin = login.split("_").length > 2
-                    ? login.split("_")[1] + "_" + login.split("_")[2]
-                    : selectedLogin.id_cliente;
+                if (data) {
+                    // Obter o código da base usando o mapping
+                    const baseCode = BASE_MAPPING[selectedLogin.base || ""] || selectedLogin.base || "";
+                    const login = selectedLogin.login || "";
 
-                // Formato: {baseCode} - {login} - {endereco} + {numero}
-                const rawName = `${baseCode} - ${formattedLogin} - ${data.endereco} ${data.numero}`;
+                    setContractData({
+                        endereco: data.endereco,
+                        numero: data.numero
+                    });
 
-                // Normalizar o nome removendo acentuação e caracteres especiais
-                const generatedName = normalizeToASCII(rawName);
+                    // Formatação do login
+                    const formattedLogin = login.split("_").length > 2
+                        ? login.split("_")[1] + "_" + login.split("_")[2]
+                        : selectedLogin.id_cliente;
 
-                setOnuName(generatedName);
+                    // Formato: {baseCode} - {login} - {endereco} + {numero}
+                    const rawName = `${baseCode} - ${formattedLogin} - ${data.endereco} ${data.numero}`;
+
+                    // Normalizar o nome removendo acentuação e caracteres especiais
+                    const generatedName = normalizeToASCII(rawName);
+
+                    setOnuName(generatedName);
+                }
             }
         } catch (error) {
             console.error("Erro ao buscar dados do contrato:", error);
