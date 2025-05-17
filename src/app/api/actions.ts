@@ -155,6 +155,8 @@ export async function parseONUSerial(conexao: string): Promise<string | null> {
 export async function updateClientRadius(idRadius: string, body: UpdateClientRadiusBody) {
     const token = await getAuthToken();
 
+    console.log(body)
+
 
     const response = await fetch(`${API_URL}/api/v1/cliente/radius/?id=${idRadius}`, {
         method: 'PUT',
@@ -175,11 +177,20 @@ export async function updateClientRadius(idRadius: string, body: UpdateClientRad
 
 // Função para verificar logins existentes com o mesmo padrão
 export async function checkExistingLogins(basePrefix: string, idCliente: string) {
-    try {
-        const token = await getAuthToken();
-        const standardLogin = `${basePrefix}_${idCliente}`;
+    const token = await getAuthToken();
+    let standardLogin = `${basePrefix}_${idCliente}`;
 
-        // Busca por logins similares
+    const baseLogin = `${basePrefix}_${idCliente}`;
+
+    const existingLogins = [];
+    let suffix = 1;
+
+    while (true) {
+
+        if (suffix && suffix > 1) {
+            standardLogin = `${basePrefix}_${idCliente}_${suffix}`;
+        }
+
         const response = await fetch(`${API_URL}/api/v1/cliente/radius/?login=${standardLogin}`, {
             headers: {
                 Authorization: `Bearer ${token}`
@@ -187,7 +198,7 @@ export async function checkExistingLogins(basePrefix: string, idCliente: string)
             cache: 'no-store'
         });
 
-        if (!response.ok) {
+        if (!response.ok && response.status !== 404) {
             throw new Error('Erro ao verificar logins existentes');
         }
 
@@ -195,25 +206,10 @@ export async function checkExistingLogins(basePrefix: string, idCliente: string)
 
         // Se não tiver logins existentes, não precisa de sufixo
         if (!data.data || data.data.length === 0) {
-            return { login: standardLogin, suffix: null, existingLogins: [] };
-        }
-
-        // Lista de logins existentes que seguem o padrão
-        const existingLogins = data.data.map((item: { login: string }) => item.login);
-
-        // Verifica qual sufixo usar
-        let suffix = 2;
-        while (existingLogins.includes(`${standardLogin}_${suffix}`)) {
+            return { login: baseLogin, suffix: suffix == 1 ? null : suffix, existingLogins: existingLogins };
+        } else {
+            existingLogins.push(...data.data.map((item: { logins: { login: string }[] }) => item.logins[0].login));
             suffix++;
         }
-
-        return {
-            login: standardLogin,
-            suffix,
-            existingLogins
-        };
-    } catch (error) {
-        console.error('Erro ao verificar logins existentes:', error);
-        throw error;
     }
 }

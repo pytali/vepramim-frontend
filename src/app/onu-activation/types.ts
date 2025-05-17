@@ -18,6 +18,7 @@ export interface Login {
     base?: string;
     id_grupo?: string;
     id: string;
+    autenticacao: "L" | "H" | "M" | "V" | "D" | "I" | "E";
 }
 
 export interface RadiusSource {

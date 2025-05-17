@@ -15,6 +15,8 @@ export async function GET(request: NextRequest) {
 
     try {
         const data = await checkExistingLogins(basePrefix, idCliente);
+
+        console.log(data)
         return NextResponse.json(data);
     } catch (error) {
         console.error('Erro ao verificar logins existentes:', error);

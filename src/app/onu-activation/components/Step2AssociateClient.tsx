@@ -41,10 +41,26 @@ export function Step2AssociateClient({
     onPrevious,
     onNext
 }: Step2Props) {
+    // Função para verificar se o login é do tipo IPoE
+    const isIPoELogin = (autenticacao: "L" | "H" | "M" | "V" | "D" | "I" | "E") => {
+        return autenticacao === 'D';
+    };
+
+    // Verifica se o login atual é IPoE
+    const isCurrentLoginIPoE = selectedLogin && isIPoELogin(selectedLogin.autenticacao);
+
     // Função para verificar se o login está no padrão correto
     const isStandardLogin = (login: string, base: string, id_cliente: string) => {
         const basePrefix = BASE__LOGIN_MAPPING[base];
+
+        // Se a base não estiver mapeada, não podemos validar
+        if (!basePrefix) {
+            return false;
+        }
+
         const expectedPattern = `${basePrefix}_${id_cliente}`;
+
+        // Verifica se o login é exatamente igual ao padrão esperado
         return login.startsWith(expectedPattern);
     };
 
@@ -55,15 +71,15 @@ export function Step2AssociateClient({
     };
 
     // Verifica se o login segue o padrão
-    const isLoginStandard = selectedLogin &&
-        selectedLogin.login &&
-        selectedLogin.base &&
-        selectedLogin.id_cliente &&
-        isStandardLogin(
+    let isLoginStandard = false;
+
+    if (selectedLogin && selectedLogin.login && selectedLogin.base && selectedLogin.id_cliente) {
+        isLoginStandard = isStandardLogin(
             selectedLogin.login,
             selectedLogin.base,
             selectedLogin.id_cliente
         );
+    }
 
     // Função para obter o formato final de login com sufixo se necessário
     const getFinalLoginFormat = () => {
@@ -127,11 +143,15 @@ export function Step2AssociateClient({
                             <p className="text-sm text-muted-foreground">
                                 Digite o ID do Cliente para associar.
                             </p>
-                            <div className="text-sm text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 p-3 rounded-md border border-amber-200 dark:border-amber-800">
-                                <p className="font-medium">Aviso importante:</p>
-                                <p>O login do cliente será automaticamente ajustado para o padrão <span className="font-mono">{'{BASE}_{id_cliente}'}</span> caso esteja em formato diferente.</p>
-                                <p>Se já existirem logins duplicados, serão adicionados sufixos como <span className="font-mono">_2</span>, <span className="font-mono">_3</span>, etc.</p>
-                            </div>
+
+                            {/* Exibir aviso apenas se não for login IPoE */}
+                            {!isCurrentLoginIPoE && (
+                                <div className="text-sm text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 p-3 rounded-md border border-amber-200 dark:border-amber-800">
+                                    <p className="font-medium">Aviso importante:</p>
+                                    <p>O login do cliente será automaticamente ajustado para o padrão <span className="font-mono">{'{BASE}_{id_cliente}'}</span> caso esteja em formato diferente.</p>
+                                    <p>Se já existirem logins duplicados, serão adicionados sufixos como <span className="font-mono">_2</span>, <span className="font-mono">_3</span>, etc.</p>
+                                </div>
+                            )}
                         </div>
 
                         {error && (
@@ -155,18 +175,24 @@ export function Step2AssociateClient({
                                     <div>{selectedLogin.base}</div>
                                 </div>
 
-                                {selectedLogin.login && selectedLogin.base && selectedLogin.id_cliente && (
+                                {/* Exibir informações de validação de login somente se não for IPoE */}
+                                {selectedLogin.login && selectedLogin.base && selectedLogin.id_cliente && !isCurrentLoginIPoE && (
                                     <div className="mt-3 p-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded">
-                                        {checkingLogin ? (
-                                            <div className="flex items-center text-sm text-blue-700 dark:text-blue-400">
-                                                <Loader2 className="h-3 w-3 mr-2 animate-spin" />
-                                                Verificando disponibilidade do login...
-                                            </div>
+                                        {isLoginStandard ? (
+                                            <p className="text-sm text-blue-700 dark:text-blue-400">
+                                                <span className="font-medium">Login verificado:</span> O formato está de acordo com o padrão recomendado.
+                                            </p>
                                         ) : !isLoginStandard ? (
                                             <>
                                                 <p className="text-sm text-blue-700 dark:text-blue-400">
                                                     <span className="font-medium">Atenção:</span> O login atual não segue o padrão recomendado.
                                                 </p>
+                                                {checkingLogin && (
+                                                    <div className="flex items-center text-sm text-blue-700 dark:text-blue-400">
+                                                        <Loader2 className="h-3 w-3 mr-2 animate-spin" />
+                                                        Verificando disponibilidade do login...
+                                                    </div>
+                                                )}
                                                 <p className="text-sm text-blue-700 dark:text-blue-400">
                                                     Novo formato de login: <span className="font-mono font-medium">{getFinalLoginFormat()}</span>
                                                     {loginSuffix && (
@@ -188,6 +214,15 @@ export function Step2AssociateClient({
                                                 <span className="font-medium">Login verificado:</span> O formato está de acordo com o padrão recomendado.
                                             </p>
                                         )}
+                                    </div>
+                                )}
+
+                                {/* Mostrar informação de login IPoE */}
+                                {isCurrentLoginIPoE && (
+                                    <div className="mt-3 p-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded">
+                                        <p className="text-sm text-blue-700 dark:text-blue-400">
+                                            <span className="font-medium">Login IPoE detectado:</span> As informações serão atualizadas com os dados da nova ONU.
+                                        </p>
                                     </div>
                                 )}
                             </div>

@@ -7,6 +7,7 @@ interface OLT {
     device_ip: string
     status: string
     location: string
+    ipoe: string
     // Adicione mais campos conforme necessário
 }
 

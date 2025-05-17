@@ -4,6 +4,7 @@ import { Login, OnuSignalInfo, RadiusSource } from "../types";
 import { useActivityLogStore } from "@/store/activity-log";
 import { getCurrentUser } from "@/lib/client-auth";
 import { ACCEPTABLE_SIGNAL_THRESHOLD, OPTIMAL_SIGNAL_THRESHOLD } from "@/lib/constants";
+import { useOLTStore } from "@/store/olts";
 
 // Mapeamento de bases para códigos abreviados
 const BASE_MAPPING: Record<string, string> = {
@@ -21,6 +22,7 @@ const BASE_LOGIN_MAPPING: Record<string, string> = {
 
 export function useOnuActivation() {
     const { addLog, updateOnuLog } = useActivityLogStore();
+    const { olts } = useOLTStore();
     const [loading, setLoading] = useState(false);
     const [authorizingOnu, setAuthorizingOnu] = useState<string | null>(null);
     const [unauthorizedOnus, setUnauthorizedOnus] = useState<UnauthOnu[]>([]);
@@ -119,9 +121,21 @@ export function useOnuActivation() {
         return selectedLogin.login;
     };
 
+    // Função para verificar se o login é do tipo IPoE
+    const isIPoELogin = (autenticacao: "L" | "H" | "M" | "V" | "D" | "I" | "E") => {
+        return autenticacao === 'D';
+    };
+
     useEffect(() => {
         fetchUnauthorizedOnus();
     }, []);
+
+    // Carregar a lista de OLTs se necessário
+    useEffect(() => {
+        if (olts.length === 0) {
+            useOLTStore.getState().fetchOLTs();
+        }
+    }, [olts.length]);
 
     const fetchUnauthorizedOnus = async () => {
         setLoading(true);
@@ -365,15 +379,32 @@ export function useOnuActivation() {
         // Extrair informações do OLT/PON
         const oltInfo = selectedOnu.oltName?.split(':') || ['', ''];
         const oltName = oltInfo[0] || selectedOnu.oltIp;
-        const ponParts = selectedOnu.ponId?.split('/') || selectedOnu.ponId?.split('-') || ['', ''];
-        const slot = ponParts[0];
-        const pon = ponParts[1];
+        const ponParts = selectedOnu.ponId.includes('/') ? selectedOnu.ponId.split('/') : selectedOnu.ponId.split('-') || ['', ''];
+        const slot = ponParts[2];
+        const pon = ponParts[3];
 
         // Obter o prefixo da base
         const baseCode = BASE_MAPPING[selectedLogin?.base || ""] || "N/A";
 
-        // Obter o login correto (padronizado se necessário)
-        const loginToUse = getLoginForOnu();
+        // Determinar o login correto com base no tipo de conexão
+        let loginToUse = "";
+
+        // Se for IPoE, use o formato específico de IPoE
+        if (connectionType === "IPoE" && selectedLogin && isIPoELogin(selectedLogin.autenticacao)) {
+            // Encontrar a OLT correspondente pelo oltIp
+            const matchedOlt = olts.find(olt => olt.device_ip === selectedOnu.oltIp);
+
+            if (matchedOlt && matchedOlt.ipoe) {
+                // Formato IPoE: ipoe.slot.pon.sn
+                loginToUse = `${matchedOlt.ipoe.trim()}.${slot}.${pon}.${selectedOnu.sn}`;
+            } else {
+                // Fallback para o login existente se não conseguir formar o IPoE
+                loginToUse = selectedLogin.login;
+            }
+        } else {
+            // Para PPPoE, use a função normal de obtenção de login
+            loginToUse = getLoginForOnu();
+        }
 
         // Criar texto com o mesmo formato do logText, adicionando informações de sinal e VLAN
         const textToCopy = `LEMBRE DE HABILITAR O ACESSO REMOTO!
@@ -383,7 +414,7 @@ export function useOnuActivation() {
 •⁠  PON: ${pon}
 •⁠  ⁠BASE: ${baseCode}
 •⁠  ⁠LOGIN: ${loginToUse}
-•⁠  ⁠SENHA: ${selectedLogin?.id_cliente || "N/A"}
+•⁠  ⁠SENHA: ${isIPoELogin(selectedLogin?.autenticacao || "L") ? "N/A" : selectedLogin?.id_cliente || "N/A"}
 •⁠  ⁠Sinal OLT→ONU: ${signalInfo ? signalInfo.rxPower.toFixed(2) : "N/A"} dBm
 •⁠  ⁠Sinal ONU→OLT: ${signalInfo ? signalInfo.p_rx_power.toFixed(2) : "N/A"} dBm
 •⁠  ⁠VLAN: ${VLAN_MAPPING[connectionType]}`;
