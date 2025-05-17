@@ -83,7 +83,7 @@ export function Step4ConfirmAuthorize({
 
     // Função para gerar um login IPoE atualizado com as informações da nova ONU
     const getUpdatedIPoELogin = () => {
-        if (!selectedOnu || !isCurrentLoginIPoE) return null;
+        if (!selectedOnu) return null;
 
         // Encontrar a OLT correspondente no datastore pelo oltIp
         const matchedOlt = olts.find(olt => olt.device_ip === selectedOnu.oltIp);
@@ -141,6 +141,12 @@ export function Step4ConfirmAuthorize({
             return updatedIPoELogin || selectedLogin?.login || "";
         }
 
+        // Se o login é do tipo PPPoE mas o tipo de conexão foi alterado para IPoE
+        if (!isCurrentLoginIPoE && connectionType === "IPoE") {
+            const updatedIPoELogin = getUpdatedIPoELogin();
+            return updatedIPoELogin || selectedLogin?.login || "";
+        }
+
         // Verifica primeiro se o login atual já está no padrão correto
         if (selectedLogin && selectedLogin.base && selectedLogin.id_cliente && selectedLogin.login) {
             if (isStandardLogin(selectedLogin.login, selectedLogin.base, selectedLogin.id_cliente)) {
@@ -175,13 +181,19 @@ export function Step4ConfirmAuthorize({
 
     // Determinar se o login será alterado
     const willLoginChange = selectedLogin && selectedLogin.login
-        ? selectedLogin.base && selectedLogin.id_cliente
-            ? !isStandardLogin(selectedLogin.login, selectedLogin.base, selectedLogin.id_cliente)
-                ? loginForOnu !== selectedLogin.login
-                : isCurrentLoginIPoE && (connectionType === "PPPoE" || connectionType === "IPoE")
-                    ? loginForOnu !== selectedLogin.login
-                    : false
-            : loginForOnu !== selectedLogin.login
+        ? (
+            // Caso 1: mudança de IPoE para PPPoE ou atualização de IPoE
+            (isCurrentLoginIPoE && (connectionType === "PPPoE" || connectionType === "IPoE") && loginForOnu !== selectedLogin.login) ||
+
+            // Caso 2: mudança de PPPoE para IPoE
+            (!isCurrentLoginIPoE && connectionType === "IPoE") ||
+
+            // Caso 3: login fora do padrão que será padronizado
+            (!isCurrentLoginIPoE && connectionType === "PPPoE" &&
+                selectedLogin.base && selectedLogin.id_cliente &&
+                !isStandardLogin(selectedLogin.login, selectedLogin.base, selectedLogin.id_cliente) &&
+                loginForOnu !== selectedLogin.login)
+        )
         : false;
 
     // Função para exibir toast
@@ -490,7 +502,6 @@ export function Step4ConfirmAuthorize({
                                     {/* Seção para mostrar as credenciais da ONU */}
                                     {selectedLogin && loginForOnu && (
                                         <>
-
                                             {isCurrentLoginIPoE && connectionType === "PPPoE" ? (
                                                 <>
                                                     <div className="mb-6 p-4 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
@@ -528,8 +539,7 @@ export function Step4ConfirmAuthorize({
                                                     </div>
                                                 </>
                                             ) : (
-                                                <>
-                                                </>
+                                                <></>
                                             )}
 
                                             {willLoginChange && (
@@ -552,6 +562,13 @@ export function Step4ConfirmAuthorize({
                                                                     )
                                                                 ) : isCurrentLoginIPoE && connectionType === "IPoE" ? (
                                                                     "As informações do login IPoE serão atualizadas com os dados da nova ONU."
+                                                                ) : !isCurrentLoginIPoE && connectionType === "IPoE" ? (
+                                                                    <>
+                                                                        O tipo de conexão foi alterado de PPPoE para IPoE. Um novo login IPoE será gerado automaticamente.
+                                                                        <div className="mt-1">
+                                                                            Login original PPPoE: <span className="font-medium font-mono">{selectedLogin.login}</span>
+                                                                        </div>
+                                                                    </>
                                                                 ) : (
                                                                     "O login será ajustado para o padrão da empresa."
                                                                 )}
@@ -659,7 +676,7 @@ export function Step4ConfirmAuthorize({
                                         </div>
                                         {willLoginChange && (
                                             <div className="text-sm text-blue-600 dark:text-blue-400">
-                                                <p className="flex items-center">
+                                                <div className="flex items-center">
                                                     <AlertTriangle className="h-4 w-4 mr-1 inline" />
                                                     {isCurrentLoginIPoE && connectionType === "PPPoE" ? (
                                                         isCheckingLogin ? (
@@ -675,13 +692,20 @@ export function Step4ConfirmAuthorize({
                                                         )
                                                     ) : isCurrentLoginIPoE && connectionType === "IPoE" ? (
                                                         "As informações do login IPoE serão atualizadas com os dados da nova ONU."
+                                                    ) : !isCurrentLoginIPoE && connectionType === "IPoE" ? (
+                                                        <>
+                                                            O tipo de conexão foi alterado de PPPoE para IPoE. Um novo login IPoE será gerado automaticamente.
+                                                            <div className="mt-1">
+                                                                Login original PPPoE: <span className="font-medium font-mono">{selectedLogin.login}</span>
+                                                            </div>
+                                                        </>
                                                     ) : (
                                                         "O login será ajustado para o padrão da empresa."
                                                     )}
-                                                </p>
-                                                <p>
+                                                </div>
+                                                <div>
                                                     Login original: <span className="font-medium">{selectedLogin.login}</span>
-                                                </p>
+                                                </div>
                                             </div>
                                         )}
                                     </div>
