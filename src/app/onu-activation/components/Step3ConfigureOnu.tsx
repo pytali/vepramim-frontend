@@ -3,68 +3,13 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ConnectionType, UnauthOnu } from "@/types/onu";
+import { ConnectionType } from "@/types/onu";
 import { ChevronLeft, ChevronRight, RefreshCw } from "lucide-react";
-import { Login } from "../types";
+import { ContractData, Step3Props, ContractResponse } from "../types";
 import { useCallback, useEffect, useState } from "react";
 import { useOLTStore } from "@/store/olts";
+import { BASE_MAPPING, ENDPOINT_MAPPING, normalizeToASCII } from "@/utils/activationUtils";
 
-// Mapeamento de bases para códigos abreviados
-const BASE_MAPPING: Record<string, string> = {
-    "ixc.brasildigital.net.br": "BRD",
-    "ixc.candeiasnet.com.br": "CDEY",
-    "ixc.br364telecom.com.br": "BR364"
-};
-
-// Mapeamento de endpoints para bases
-const ENDPOINT_MAPPING: Record<string, string> = {
-    "https://ixc.brasildigital.net.br/webservice/v1/cliente_contrato": "ixc.brasildigital.net.br",
-    "https://ixc.candeiasnet.com.br/webservice/v1/cliente_contrato": "ixc.candeiasnet.com.br",
-    "https://ixc.br364telecom.com.br/webservice/v1/cliente_contrato": "ixc.br364telecom.com.br"
-};
-
-// Função para normalizar strings removendo acentuação e caracteres especiais
-const normalizeToASCII = (str: string): string => {
-    return str
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, ""); // Remove diacríticos
-};
-
-interface ContractData {
-    endereco: string;
-    numero: string;
-}
-
-// Interface para dados da resposta da API
-interface ContractResponse {
-    contratos: Array<{
-        endereco: string;
-        numero: string;
-        id: string;
-        id_cliente: string;
-        status: string;
-        // Adicionando outros campos conhecidos
-        contrato: string;
-        bairro: string;
-        complemento: string;
-        cep: string;
-        cidade: string;
-    }>;
-    endpoint: string;
-}
-
-interface Step3Props {
-    selectedOnu: UnauthOnu | null;
-    selectedLogin: Login | null;
-    onuName: string;
-    connectionType: ConnectionType;
-    serverType: "NETNUMEN" | "UNM";
-    setOnuName: (name: string) => void;
-    setConnectionType: (type: ConnectionType) => void;
-    setServerType: (type: "NETNUMEN" | "UNM") => void;
-    onPrevious: () => void;
-    onNext: () => void;
-}
 
 export function Step3ConfigureOnu({
     selectedOnu,

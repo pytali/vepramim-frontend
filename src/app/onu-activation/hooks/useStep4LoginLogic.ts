@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef } from "react";
-import { BASE__LOGIN_MAPPING, isIPoELogin, isStandardLogin, getStandardLogin, getUpdatedIPoELogin } from "@/utils/loginUtils";
+import { BASE_LOGIN_MAPPING, isIPoELogin, isStandardLogin, getStandardLogin, getUpdatedIPoELogin } from "@/utils/activationUtils";
 import { OLT } from "@/store/olts";
 import { UnauthOnu, ConnectionType } from "@/types/onu";
 import { Login } from "../types";
@@ -40,7 +40,7 @@ export function useStep4LoginLogic({
                 return loginSuffix ? `${standardLogin}_${loginSuffix}` : standardLogin;
             }
             if (selectedLogin && selectedLogin.base && selectedLogin.id_cliente) {
-                const basePrefix = BASE__LOGIN_MAPPING[selectedLogin.base];
+                const basePrefix = BASE_LOGIN_MAPPING[selectedLogin.base];
                 if (basePrefix) {
                     const newStandardLogin = `${basePrefix}_${selectedLogin.id_cliente}`;
                     return loginSuffix ? `${newStandardLogin}_${loginSuffix}` : newStandardLogin;

@@ -2,30 +2,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { UnauthOnu } from "@/types/onu";
 import { AlertCircle, ChevronLeft, ChevronRight, Loader2, Search } from "lucide-react";
-import { Login } from "../types";
+import { Step2Props } from "../types";
+import { isIPoELogin, isStandardLogin, getStandardLogin } from "@/utils/activationUtils";
 
-interface Step2Props {
-    selectedOnu: UnauthOnu | null;
-    searchQuery: string;
-    setSearchQuery: (query: string) => void;
-    searchingClient: boolean;
-    error: string | null;
-    selectedLogin: Login | null;
-    loginSuffix: number | null;
-    standardLogin: string;
-    checkingLogin: boolean;
-    onSearchClient: () => void;
-    onPrevious: () => void;
-    onNext: () => void;
-}
-
-const BASE__LOGIN_MAPPING: Record<string, string> = {
-    "ixc.brasildigital.net.br": "brd",
-    "ixc.candeiasnet.com.br": "cdy",
-    "ixc.br364telecom.com.br": "364"
-};
 
 export function Step2AssociateClient({
     selectedOnu,
@@ -41,34 +21,9 @@ export function Step2AssociateClient({
     onPrevious,
     onNext
 }: Step2Props) {
-    // Função para verificar se o login é do tipo IPoE
-    const isIPoELogin = (autenticacao: "L" | "H" | "M" | "V" | "D" | "I" | "E") => {
-        return autenticacao === 'D';
-    };
 
     // Verifica se o login atual é IPoE
     const isCurrentLoginIPoE = selectedLogin && isIPoELogin(selectedLogin.autenticacao);
-
-    // Função para verificar se o login está no padrão correto
-    const isStandardLogin = (login: string, base: string, id_cliente: string) => {
-        const basePrefix = BASE__LOGIN_MAPPING[base];
-
-        // Se a base não estiver mapeada, não podemos validar
-        if (!basePrefix) {
-            return false;
-        }
-
-        const expectedPattern = `${basePrefix}_${id_cliente}`;
-
-        // Verifica se o login é exatamente igual ao padrão esperado
-        return login.startsWith(expectedPattern);
-    };
-
-    // Função para gerar o novo login no padrão correto
-    const getNewLoginFormat = (base: string, id_cliente: string) => {
-        const basePrefix = BASE__LOGIN_MAPPING[base];
-        return `${basePrefix}_${id_cliente}`;
-    };
 
     // Verifica se o login segue o padrão
     let isLoginStandard = false;
@@ -85,7 +40,7 @@ export function Step2AssociateClient({
     const getFinalLoginFormat = () => {
         if (!standardLogin) {
             if (selectedLogin?.base && selectedLogin?.id_cliente) {
-                const baseLogin = getNewLoginFormat(selectedLogin.base, selectedLogin.id_cliente);
+                const baseLogin = getStandardLogin(selectedLogin.base, selectedLogin.id_cliente);
                 return loginSuffix ? `${baseLogin}_${loginSuffix}` : baseLogin;
             }
             return "Formatando login...";

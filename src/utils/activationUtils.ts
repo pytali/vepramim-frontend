@@ -2,10 +2,23 @@ import { UnauthOnu } from "@/types/onu";
 import type { OLT } from "@/store/olts";
 
 // Mapeamento das bases para os prefixos de login
-export const BASE__LOGIN_MAPPING: Record<string, string> = {
+export const BASE_LOGIN_MAPPING: Record<string, string> = {
     "ixc.brasildigital.net.br": "brd",
     "ixc.candeiasnet.com.br": "cdy",
     "ixc.br364telecom.com.br": "364"
+};
+
+export const BASE_MAPPING: Record<string, string> = {
+    "ixc.brasildigital.net.br": "BRD",
+    "ixc.candeiasnet.com.br": "CDEY",
+    "ixc.br364telecom.com.br": "BR364"
+};
+
+// Mapeamento de endpoints para bases
+export const ENDPOINT_MAPPING: Record<string, string> = {
+    "https://ixc.brasildigital.net.br/webservice/v1/cliente_contrato": "ixc.brasildigital.net.br",
+    "https://ixc.candeiasnet.com.br/webservice/v1/cliente_contrato": "ixc.candeiasnet.com.br",
+    "https://ixc.br364telecom.com.br/webservice/v1/cliente_contrato": "ixc.br364telecom.com.br"
 };
 
 /**
@@ -25,7 +38,7 @@ export function isIPoELogin(autenticacao: "L" | "H" | "M" | "V" | "D" | "I" | "E
  * @returns true se estiver no padrão
  */
 export function isStandardLogin(login: string, base: string, id_cliente: string): boolean {
-    const basePrefix = BASE__LOGIN_MAPPING[base];
+    const basePrefix = BASE_LOGIN_MAPPING[base];
     if (!basePrefix) return true; // Se não temos mapeamento, consideramos como padrão
     const expectedPattern = `${basePrefix}_${id_cliente}`;
     return login.startsWith(expectedPattern);
@@ -38,7 +51,7 @@ export function isStandardLogin(login: string, base: string, id_cliente: string)
  * @returns Login padrão
  */
 export function getStandardLogin(base: string, id_cliente: string): string {
-    const basePrefix = BASE__LOGIN_MAPPING[base];
+    const basePrefix = BASE_LOGIN_MAPPING[base];
     if (!basePrefix) return "";
     return `${basePrefix}_${id_cliente}`;
 }
@@ -56,4 +69,12 @@ export function getUpdatedIPoELogin(olts: OLT[], selectedOnu: UnauthOnu) {
     const ponParts = selectedOnu.ponId.split('-');
     if (ponParts.length < 2) return null;
     return `${matchedOlt.ipoe.trim()}.${ponParts[2]}.${ponParts[3]}.${selectedOnu.sn}`;
-} 
+}
+
+
+// Função para normalizar strings removendo acentuação e caracteres especiais
+export const normalizeToASCII = (str: string): string => {
+    return str
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, ""); // Remove diacríticos
+};

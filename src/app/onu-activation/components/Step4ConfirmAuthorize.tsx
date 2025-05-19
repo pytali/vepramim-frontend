@@ -1,8 +1,8 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ConnectionType, UnauthOnu, VLAN_MAPPING } from "@/types/onu";
+import { VLAN_MAPPING } from "@/types/onu";
 import { Check, ChevronLeft, Copy, AlertTriangle, Loader2 } from "lucide-react";
-import { Login, OnuSignalInfo } from "../types";
+import { Step4Props } from "../types";
 import { useEffect, useRef } from "react";
 import { useOLTStore } from "@/store/olts";
 import { useStep4LoginLogic } from "../hooks/useStep4LoginLogic";
@@ -11,40 +11,9 @@ import { LottieWrapper } from "./step4/LottieWrapper";
 import { Step4Toast } from "./step4/Step4Toast";
 import { SignalInfoCard } from "./step4/SignalInfoCard";
 import { CredentialsCard } from "./step4/CredentialsCard";
-import { BASE_MAPPING } from "../hooks/useOnuActivation";
+import { BASE_MAPPING } from "@/utils/activationUtils";
 
-interface Step4Props {
-    selectedOnu: UnauthOnu | null;
-    selectedLogin: Login | null;
-    onuName: string;
-    connectionType: ConnectionType;
-    serverType: "NETNUMEN" | "UNM";
-    authorizingOnu: string | null;
-    successMessage: string | null;
-    signalInfo: OnuSignalInfo | null;
-    copiedToClipboard: boolean;
-    isVerifyingSignal: boolean;
-    error: string | null;
-    loginSuffix: number | null;
-    standardLogin: string;
-    onPrevious: () => void;
-    onAuthorize: () => void;
-    onCopyDetails: (params: {
-        sn: string;
-        olt: string;
-        slot: string;
-        pon: string;
-        base: string;
-        login: string;
-        senha: string;
-        rxPower: string;
-        p_rx_power: string;
-        vlan: string;
-    }) => void;
-    onReset: () => void;
-    onDeleteOnu?: (data: { sn: string; oltId: string; ponId: string; serverType: "NETNUMEN" | "UNM" }) => Promise<void>;
-    checkExistingLogins?: (base: string, id_cliente: string) => Promise<void>;
-}
+
 
 export function Step4ConfirmAuthorize(props: Step4Props) {
     const {

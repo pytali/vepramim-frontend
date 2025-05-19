@@ -1,18 +1,10 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { UnauthOnu } from "@/types/onu";
+import { Step1Props } from "../types";
 import { ChevronRight, Loader2 } from "lucide-react";
 
-interface Step1Props {
-    loading: boolean;
-    error: string | null;
-    unauthorizedOnus: UnauthOnu[];
-    selectedOnu: UnauthOnu | null;
-    onSelectOnu: (onu: UnauthOnu) => void;
-    onRefreshList: () => void;
-    onNext: () => void;
-}
+
 
 export function Step1SelectOnu({
     loading,

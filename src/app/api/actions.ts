@@ -155,8 +155,6 @@ export async function parseONUSerial(conexao: string): Promise<string | null> {
 export async function updateClientRadius(idRadius: string, body: UpdateClientRadiusBody) {
     const token = await getAuthToken();
 
-    console.log(body)
-
 
     const response = await fetch(`${API_URL}/api/v1/cliente/radius/?id=${idRadius}`, {
         method: 'PUT',

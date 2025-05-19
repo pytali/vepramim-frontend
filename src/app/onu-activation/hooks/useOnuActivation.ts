@@ -5,20 +5,8 @@ import { useActivityLogStore } from "@/store/activity-log";
 import { getCurrentUser } from "@/lib/client-auth";
 import { ACCEPTABLE_SIGNAL_THRESHOLD, CRITICAL_SIGNAL_THRESHOLD } from "@/lib/constants";
 import { useOLTStore } from "@/store/olts";
+import { isStandardLogin, getStandardLogin, BASE_LOGIN_MAPPING, BASE_MAPPING } from "@/utils/activationUtils";
 
-// Mapeamento de bases para códigos abreviados
-export const BASE_MAPPING: Record<string, string> = {
-    "ixc.brasildigital.net.br": "BRD",
-    "ixc.candeiasnet.com.br": "CDEY",
-    "ixc.br364telecom.com.br": "BR364"
-};
-
-// Mapeamento das bases para os prefixos de login
-const BASE_LOGIN_MAPPING: Record<string, string> = {
-    "ixc.brasildigital.net.br": "brd",
-    "ixc.candeiasnet.com.br": "cdy",
-    "ixc.br364telecom.com.br": "364"
-};
 
 export function useOnuActivation() {
     const { addLog, updateOnuLog } = useActivityLogStore();
@@ -47,20 +35,6 @@ export function useOnuActivation() {
     const [standardLogin, setStandardLogin] = useState<string>("");
     const totalSteps = 4;
 
-    // Função para verificar se o login está no padrão correto
-    const isStandardLogin = (login: string, base: string, id_cliente: string): boolean => {
-        const basePrefix = BASE_LOGIN_MAPPING[base];
-        if (!basePrefix) return true; // Se não temos mapeamento, consideramos como padrão
-        const expectedPattern = `${basePrefix}_${id_cliente}`;
-        return login.startsWith(expectedPattern);
-    };
-
-    // Função para gerar o novo login no padrão correto
-    const getStandardLogin = (base: string, id_cliente: string): string => {
-        const basePrefix = BASE_LOGIN_MAPPING[base];
-        if (!basePrefix) return ""; // Se não temos mapeamento, retornamos vazio
-        return `${basePrefix}_${id_cliente}`;
-    };
 
     // Verifica se existe login duplicado e determina o sufixo necessário
     const checkExistingLogins = async (base: string, id_cliente: string): Promise<void> => {
@@ -393,10 +367,11 @@ export function useOnuActivation() {
         }
 
         // Atualizar o nome da ONU com base nos dados do login
-        if (login.base && login.login) {
+        // TODO: Verificar se é necessário manter o nome original da ONU
+        if (login.base && login.id_cliente) {
             // Obter o código abreviado da base ou usar a base original se não tiver mapeamento
             const baseCode = BASE_MAPPING[login.base] || login.base;
-            setOnuName(`${baseCode} - ${login.login.toUpperCase()}`);
+            setOnuName(`${baseCode} - ${login.id_cliente}`);
         }
     };
 
