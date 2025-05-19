@@ -232,6 +232,12 @@ export default function ClientSearch({
 
     const processClientData = async (clientData: Login) => {
         try {
+
+            if (clientData.id_contrato === '0') {
+                onClientDataFound({ error: 'ID do contrato inválido: ' + clientData.id_contrato });
+                return;
+            }
+
             // Busca dados do plano
             const planResponse = await fetch(`/api/client?idContrato=${clientData.id_contrato}`);
             const data = await planResponse.json() as PlanData;

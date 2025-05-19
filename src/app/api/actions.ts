@@ -74,6 +74,14 @@ export async function getClientPlan(idContrato: string) {
     try {
         const token = await getAuthToken();
 
+        if (!idContrato) {
+            throw new Error('ID do contrato não informado');
+        }
+
+        if (idContrato === '0') {
+            throw new Error('ID do contrato não informado');
+        }
+
         const response = await fetch(`${API_URL}/api/v1/cliente/plano?idContrato=${idContrato}`, {
             headers: {
                 Authorization: `Bearer ${token}`
