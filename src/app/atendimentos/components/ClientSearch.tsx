@@ -54,95 +54,98 @@ interface RadiusSource {
 
 interface PlanData {
     error: boolean;
-    data: {
-        contrato: string;
-        endereco: string;
-        numero: string;
-        bairro: string;
-        cidade: string;
-        estado: string;
-        cep: string;
-        complemento: string;
-        tipo: string;
-        descricao_aux_plano_venda: string;
-        aviso_atraso: string;
-        id_tipo_contrato: string;
-        id_carteira_cobranca: string;
-        id_modelo: string;
-        status_velocidade: string;
-        id_vendedor: string;
-        cc_previsao: string;
-        nao_avisar_ate: string;
-        nao_bloquear_ate: string;
-        id_tipo_documento: string;
-        tipo_doc_opc: string;
-        desconto_fidelidade: string;
-        tipo_doc_opc2: string;
-        tipo_doc_opc3: string;
-        taxa_improdutiva: string;
-        tipo_doc_opc4: string;
-        desbloqueio_confianca: string;
-        data_negativacao: string;
-        data_acesso_desativado: string;
-        motivo_cancelamento: string;
-        data_cancelamento: string;
-        obs_cancelamento: string;
-        id_vendedor_ativ: string;
-        fidelidade: string;
-        tipo_cobranca: string;
-        desbloqueio_confianca_ativo: string;
-        id_responsavel: string;
-        taxa_instalacao: string;
-        protocolo_negativacao: string;
-        dt_ult_bloq_auto: string;
-        dt_ult_bloq_manual: string;
-        dt_ult_des_bloq_conf: string;
-        dt_ult_ativacao: string;
-        avalista_1: string;
-        dt_ult_finan_atraso: string;
-        avalista_2: string;
-        dt_utl_negativacao: string;
-        data_cadastro_sistema: string;
-        ultima_atualizacao: string;
-        referencia: string;
-        id_condominio: string;
-        nf_info_adicionais: string;
-        assinatura_digital: string;
-        tipo_produtos_plano: string;
-        bloco: string;
-        apartamento: string;
-        latitude: string;
-        longitude: string;
-        num_parcelas_atraso: string;
-        dt_ult_desiste: string;
-        id_contrato_principal: string;
-        gerar_finan_assin_digital_contrato: string;
-        credit_card_recorrente_token: string;
-        credit_card_recorrente_bandeira_cartao: string;
-        id_motivo_negativacao: string;
-        obs_negativacao: string;
-        restricao_auto_desbloqueio: string;
-        motivo_restricao_auto_desbloq: string;
-        nao_susp_parc_ate: string;
-        liberacao_suspensao_parcial: string;
-        utilizando_auto_libera_susp_parc: string;
-        restricao_auto_libera_susp_parcial: string;
-        motivo_restri_auto_libera_parc: string;
-        data_inicial_suspensao: string;
-        data_final_suspensao: string;
-        data_retomada_contrato: string;
-        dt_ult_liberacao_susp_parc: string;
-        base_geracao_tipo_doc: string;
-        integracao_assinatura_digital: string;
-        url_assinatura_digital: string;
-        token_assinatura_digital: string;
-        testemunha_assinatura_digital: string;
-        document_photo: string;
-        selfie_photo: string;
-        tipo_localidade: string;
-        estrato_social_col: string;
-        agrupar_financeiro_contrato: string;
-    }
+    data: [{
+        contratos: [{
+            contrato: string;
+            endereco: string;
+            numero: string;
+            bairro: string;
+            cidade: string;
+            estado: string;
+            cep: string;
+            complemento: string;
+            tipo: string;
+            descricao_aux_plano_venda: string;
+            aviso_atraso: string;
+            id_tipo_contrato: string;
+            id_carteira_cobranca: string;
+            id_modelo: string;
+            status_velocidade: string;
+            id_vendedor: string;
+            cc_previsao: string;
+            nao_avisar_ate: string;
+            nao_bloquear_ate: string;
+            id_tipo_documento: string;
+            tipo_doc_opc: string;
+            desconto_fidelidade: string;
+            tipo_doc_opc2: string;
+            tipo_doc_opc3: string;
+            taxa_improdutiva: string;
+            tipo_doc_opc4: string;
+            desbloqueio_confianca: string;
+            data_negativacao: string;
+            data_acesso_desativado: string;
+            motivo_cancelamento: string;
+            data_cancelamento: string;
+            obs_cancelamento: string;
+            id_vendedor_ativ: string;
+            fidelidade: string;
+            tipo_cobranca: string;
+            desbloqueio_confianca_ativo: string;
+            id_responsavel: string;
+            taxa_instalacao: string;
+            protocolo_negativacao: string;
+            dt_ult_bloq_auto: string;
+            dt_ult_bloq_manual: string;
+            dt_ult_des_bloq_conf: string;
+            dt_ult_ativacao: string;
+            avalista_1: string;
+            dt_ult_finan_atraso: string;
+            avalista_2: string;
+            dt_utl_negativacao: string;
+            data_cadastro_sistema: string;
+            ultima_atualizacao: string;
+            referencia: string;
+            id_condominio: string;
+            nf_info_adicionais: string;
+            assinatura_digital: string;
+            tipo_produtos_plano: string;
+            bloco: string;
+            apartamento: string;
+            latitude: string;
+            longitude: string;
+            num_parcelas_atraso: string;
+            dt_ult_desiste: string;
+            id_contrato_principal: string;
+            gerar_finan_assin_digital_contrato: string;
+            credit_card_recorrente_token: string;
+            credit_card_recorrente_bandeira_cartao: string;
+            id_motivo_negativacao: string;
+            obs_negativacao: string;
+            restricao_auto_desbloqueio: string;
+            motivo_restricao_auto_desbloq: string;
+            nao_susp_parc_ate: string;
+            liberacao_suspensao_parcial: string;
+            utilizando_auto_libera_susp_parc: string;
+            restricao_auto_libera_susp_parcial: string;
+            motivo_restri_auto_libera_parc: string;
+            data_inicial_suspensao: string;
+            data_final_suspensao: string;
+            data_retomada_contrato: string;
+            dt_ult_liberacao_susp_parc: string;
+            base_geracao_tipo_doc: string;
+            integracao_assinatura_digital: string;
+            url_assinatura_digital: string;
+            token_assinatura_digital: string;
+            testemunha_assinatura_digital: string;
+            document_photo: string;
+            selfie_photo: string;
+            tipo_localidade: string;
+            estrato_social_col: string;
+            agrupar_financeiro_contrato: string;
+        }]
+        endpoint: string;
+    }]
 }
 
 interface ClientSearchProps {
@@ -231,18 +234,42 @@ export default function ClientSearch({
         try {
             // Busca dados do plano
             const planResponse = await fetch(`/api/client?idContrato=${clientData.id_contrato}`);
-            const planData = await planResponse.json() as PlanData;
+            const data = await planResponse.json() as PlanData;
 
-            if (planData.error) {
+            if (data.error) {
                 onClientDataFound({ error: 'Erro ao buscar dados do plano' });
                 return;
             }
-            //Atualiza os dados do cliente
-            onClientDataFound({
-                loginPPPoE: clientData.login,
-                senha: clientData.senha,
-                plano: planData.data.contrato,
-            });
+
+            // Verifica se o endpoint da resposta é o mesmo do clientData
+            if (clientData.endpoint && data.data[0].endpoint === clientData.endpoint) {
+                const planData = data.data[0].contratos[0];
+                //Atualiza os dados do cliente
+                onClientDataFound({
+                    loginPPPoE: clientData.login,
+                    senha: clientData.senha,
+                    plano: planData.contrato,
+                });
+
+                // Retorna os dados completos do contrato/plano
+                setAtendimento({
+                    ...atendimento,
+                    clienteInfo: {
+                        ...atendimento.clienteInfo,
+                        loginPppoe: clientData.login,
+                        senhaPppoe: clientData.senha,
+                        planoCliente: planData.contrato,
+                    }
+                });
+            } else {
+                const planData = data.data[0].contratos[0];
+                //Atualiza os dados do cliente
+                onClientDataFound({
+                    loginPPPoE: clientData.login,
+                    senha: clientData.senha,
+                    plano: planData.contrato,
+                });
+            }
 
             // Extrai o SN da ONU
             const onuSN = await parseONUSerial(clientData.conexao);
