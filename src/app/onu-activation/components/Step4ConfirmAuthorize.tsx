@@ -3,17 +3,15 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ConnectionType, UnauthOnu, VLAN_MAPPING } from "@/types/onu";
 import { Check, ChevronLeft, Copy, AlertTriangle, Loader2 } from "lucide-react";
 import { Login, OnuSignalInfo } from "../types";
-import { useEffect, useState, useRef, useCallback } from "react";
-import { DotLottieReact } from '@lottiefiles/dotlottie-react';
-import { ACCEPTABLE_SIGNAL_THRESHOLD, CRITICAL_SIGNAL_THRESHOLD, OPTIMAL_SIGNAL_THRESHOLD } from "@/lib/constants";
+import { useEffect, useRef } from "react";
 import { useOLTStore } from "@/store/olts";
-
-// Mapeamento das bases para os prefixos de login
-const BASE__LOGIN_MAPPING: Record<string, string> = {
-    "ixc.brasildigital.net.br": "brd",
-    "ixc.candeiasnet.com.br": "cdy",
-    "ixc.br364telecom.com.br": "364"
-};
+import { useStep4LoginLogic } from "../hooks/useStep4LoginLogic";
+import { useStep4SignalLogic } from "../hooks/useStep4SignalLogic";
+import { LottieWrapper } from "./step4/LottieWrapper";
+import { Step4Toast } from "./step4/Step4Toast";
+import { SignalInfoCard } from "./step4/SignalInfoCard";
+import { CredentialsCard } from "./step4/CredentialsCard";
+import { BASE_MAPPING } from "../hooks/useOnuActivation";
 
 interface Step4Props {
     selectedOnu: UnauthOnu | null;
@@ -31,357 +29,111 @@ interface Step4Props {
     standardLogin: string;
     onPrevious: () => void;
     onAuthorize: () => void;
-    onCopyDetails: () => void;
+    onCopyDetails: (params: {
+        sn: string;
+        olt: string;
+        slot: string;
+        pon: string;
+        base: string;
+        login: string;
+        senha: string;
+        rxPower: string;
+        p_rx_power: string;
+        vlan: string;
+    }) => void;
     onReset: () => void;
     onDeleteOnu?: (data: { sn: string; oltId: string; ponId: string; serverType: "NETNUMEN" | "UNM" }) => Promise<void>;
     checkExistingLogins?: (base: string, id_cliente: string) => Promise<void>;
 }
 
-export function Step4ConfirmAuthorize({
-    selectedOnu,
-    selectedLogin,
-    onuName,
-    connectionType,
-    serverType,
-    authorizingOnu,
-    successMessage,
-    signalInfo,
-    copiedToClipboard,
-    isVerifyingSignal,
-    error,
-    loginSuffix,
-    standardLogin,
-    onPrevious,
-    onAuthorize,
-    onCopyDetails,
-    onReset,
-    onDeleteOnu,
-    checkExistingLogins
-}: Step4Props) {
-    const [signalError, setSignalError] = useState<string | null>(null);
-    const [isDeletingOnu, setIsDeletingOnu] = useState(false);
-    const [lottieError, setLottieError] = useState(false);
-    const [isUpdatingLogin, setIsUpdatingLogin] = useState(false);
-    const [loginUpdated, setLoginUpdated] = useState(false);
-    const [isCheckingLogin, setIsCheckingLogin] = useState(false);
-    const [toastMessage, setToastMessage] = useState<string | null>(null);
-    const [toastType, setToastType] = useState<'success' | 'error'>('success');
-    const containerRef = useRef<HTMLDivElement>(null);
-    const hasDeletedOnuRef = useRef<boolean>(false);
-    const hasUpdatedLoginRef = useRef<boolean>(false);
+export function Step4ConfirmAuthorize(props: Step4Props) {
+    const {
+        selectedOnu,
+        selectedLogin,
+        onuName,
+        connectionType,
+        serverType,
+        authorizingOnu,
+        successMessage,
+        signalInfo,
+        copiedToClipboard,
+        isVerifyingSignal,
+        error,
+        loginSuffix,
+        standardLogin,
+        onPrevious,
+        onAuthorize,
+        onCopyDetails,
+        onReset,
+        onDeleteOnu,
+        checkExistingLogins
+    } = props;
 
-    // Obtém a lista de OLTs do store
     const { olts } = useOLTStore();
+    const containerRef = useRef<HTMLDivElement>(null);
 
-    // Função para verificar se o login é do tipo IPoE
-    const isIPoELogin = (autenticacao: "L" | "H" | "M" | "V" | "D" | "I" | "E") => {
-        return autenticacao === 'D';
-    };
+    // Lógica de login
+    const {
+        loginForOnu,
+        willLoginChange,
+        isCurrentLoginIPoE,
+        updateClientLogin,
+        loginUpdated,
+        isUpdatingLogin,
+        isCheckingLogin,
+        setIsCheckingLogin,
+        toastMessage,
+        toastType,
+    } = useStep4LoginLogic({
+        selectedOnu,
+        selectedLogin,
+        connectionType,
+        olts,
+        loginSuffix,
+        standardLogin,
+        checkExistingLogins
+    });
 
-    // Verifica se o login atual é IPoE
-    const isCurrentLoginIPoE = selectedLogin && isIPoELogin(selectedLogin.autenticacao);
+    // Lógica de sinal
+    const {
+        signalError,
+        isDeletingOnu,
+        lottieError,
+    } = useStep4SignalLogic({
+        signalInfo,
+        onDeleteOnu,
+        selectedOnu,
+        serverType
+    });
 
-    // Função para gerar um login IPoE atualizado com as informações da nova ONU
-    const getUpdatedIPoELogin = () => {
-        if (!selectedOnu) return null;
-
-        // Encontrar a OLT correspondente no datastore pelo oltIp
-        const matchedOlt = olts.find(olt => olt.device_ip === selectedOnu.oltIp);
-
-        if (!matchedOlt || !matchedOlt.ipoe) {
-            console.warn("OLT não encontrada ou sem prefixo IPoE definido");
-            return null;
-        }
-
-        // Extrai as partes relevantes do slot e PON da selectedOnu.ponId
-        const ponParts = selectedOnu.ponId.split('-');
-        if (ponParts.length < 2) return null;
-
-        // Formato: ipoe.slot.pon.sn (usando o prefixo ipoe da OLT encontrada)
-        return `${matchedOlt.ipoe.trim()}.${ponParts[2]}.${ponParts[3]}.${selectedOnu.sn}`;
-    };
-
-    // Função para verificar se o login está no padrão correto
-    const isStandardLogin = (login: string, base: string, id_cliente: string): boolean => {
-        const basePrefix = BASE__LOGIN_MAPPING[base];
-        if (!basePrefix) return true; // Se não temos mapeamento, consideramos como padrão
-        const expectedPattern = `${basePrefix}_${id_cliente}`;
-        return login.startsWith(expectedPattern);
-    };
-
-    // Função para gerar o novo login no padrão correto
-    const getStandardLogin = (base: string, id_cliente: string): string => {
-        const basePrefix = BASE__LOGIN_MAPPING[base];
-        if (!basePrefix) return ""; // Se não temos mapeamento, retornamos vazio
-        return `${basePrefix}_${id_cliente}`;
-    };
-
-    // Função para obter o login padronizado com sufixo quando necessário
-    const getFinalLogin = (): string => {
-        // Se o login é do tipo IPoE mas o tipo de conexão foi alterado para PPPoE
-        if (isCurrentLoginIPoE && connectionType === "PPPoE") {
-            // Usar o login padrão PPPoE em vez do login IPoE
-            if (standardLogin) {
-                return loginSuffix ? `${standardLogin}_${loginSuffix}` : standardLogin;
-            }
-            // Fallback: gerar login PPPoE do zero
-            if (selectedLogin && selectedLogin.base && selectedLogin.id_cliente) {
-                const basePrefix = BASE__LOGIN_MAPPING[selectedLogin.base];
-                if (basePrefix) {
-                    const newStandardLogin = `${basePrefix}_${selectedLogin.id_cliente}`;
-                    return loginSuffix ? `${newStandardLogin}_${loginSuffix}` : newStandardLogin;
-                }
-            }
-            return selectedLogin?.login || "";
-        }
-
-        // Se o login é do tipo IPoE e o tipo de conexão continua como IPoE
-        if (isCurrentLoginIPoE && connectionType === "IPoE") {
-            const updatedIPoELogin = getUpdatedIPoELogin();
-            return updatedIPoELogin || selectedLogin?.login || "";
-        }
-
-        // Se o login é do tipo PPPoE mas o tipo de conexão foi alterado para IPoE
-        if (!isCurrentLoginIPoE && connectionType === "IPoE") {
-            const updatedIPoELogin = getUpdatedIPoELogin();
-            return updatedIPoELogin || selectedLogin?.login || "";
-        }
-
-        // Verifica primeiro se o login atual já está no padrão correto
-        if (selectedLogin && selectedLogin.base && selectedLogin.id_cliente && selectedLogin.login) {
-            if (isStandardLogin(selectedLogin.login, selectedLogin.base, selectedLogin.id_cliente)) {
-                // Login já está no padrão correto - mantém como está
-                return selectedLogin.login;
-            }
-        }
-
-        // Se já temos o login padrão e o sufixo determinados (para PPPoE)
-        if (standardLogin) {
-            // Se tem sufixo, adiciona ao login padrão
-            if (loginSuffix) {
-                return `${standardLogin}_${loginSuffix}`;
-            }
-            return standardLogin;
-        }
-
-        // Fallback para a lógica antiga
-        if (selectedLogin && selectedLogin.base && selectedLogin.id_cliente) {
-            if (isStandardLogin(selectedLogin.login, selectedLogin.base, selectedLogin.id_cliente)) {
-                return selectedLogin.login;
-            } else {
-                return getStandardLogin(selectedLogin.base, selectedLogin.id_cliente);
-            }
-        }
-
-        return selectedLogin?.login || "";
-    };
-
-    // Verificar se o login está no padrão correto e obter o login padrão se necessário
-    const loginForOnu = getFinalLogin();
-
-    // Determinar se o login será alterado
-    const willLoginChange = selectedLogin && selectedLogin.login
-        ? (
-            // Caso 1: mudança de IPoE para PPPoE ou atualização de IPoE
-            (isCurrentLoginIPoE && (connectionType === "PPPoE" || connectionType === "IPoE") && loginForOnu !== selectedLogin.login) ||
-
-            // Caso 2: mudança de PPPoE para IPoE
-            (!isCurrentLoginIPoE && connectionType === "IPoE") ||
-
-            // Caso 3: login fora do padrão que será padronizado
-            (!isCurrentLoginIPoE && connectionType === "PPPoE" &&
-                selectedLogin.base && selectedLogin.id_cliente &&
-                !isStandardLogin(selectedLogin.login, selectedLogin.base, selectedLogin.id_cliente) &&
-                loginForOnu !== selectedLogin.login)
-        )
-        : false;
-
-    // Função para exibir toast
-    const showToast = useCallback((message: string, type: 'success' | 'error' = 'success') => {
-        setToastMessage(message);
-        setToastType(type);
-
-        // Limpar toast após alguns segundos
-        setTimeout(() => {
-            setToastMessage(null);
-        }, 3000);
-    }, []);
-
-    // Carregar a lista de OLTs ao montar o componente se ainda não estiver carregada
-    useEffect(() => {
-        if (olts.length === 0) {
-            useOLTStore.getState().fetchOLTs();
-        }
-    }, [olts.length]);
-
-    // Função para atualizar o login do cliente
-    const updateClientLogin = useCallback(async () => {
-        if (!selectedLogin || !willLoginChange || !loginForOnu || hasUpdatedLoginRef.current) {
-            return;
-        }
-
-        try {
-            setIsUpdatingLogin(true);
-            hasUpdatedLoginRef.current = true;
-
-            const response = await fetch(`/api/client/?id=${selectedLogin.id}`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    login: loginForOnu,
-                    senha: selectedLogin.id_cliente,
-                    endpoint: selectedLogin.base,
-                    id_cliente: selectedLogin.id_cliente,
-                    id_grupo: selectedLogin.id_grupo,
-                    autenticacao: connectionType === "PPPoE" ? "PPPoE" : "IPoE",
-                    id_contrato: selectedLogin.id_contrato
-                })
-            });
-            if (!response.ok) {
-                throw new Error('Falha ao atualizar o login do cliente');
-            }
-
-            setLoginUpdated(true);
-            showToast("Login do cliente atualizado com sucesso", "success");
-        } catch (error) {
-            console.error("Erro ao atualizar login do cliente:", error);
-            showToast("Não foi possível atualizar o login do cliente", "error");
-            // Se houve erro, permitir nova tentativa
-            hasUpdatedLoginRef.current = false;
-        } finally {
-            setIsUpdatingLogin(false);
-        }
-    }, [selectedLogin, willLoginChange, loginForOnu, connectionType, showToast]);
-
-    // Efeito para atualizar o login quando a ONU for ativada com sucesso e o sinal estiver bom
+    // Atualizar login do cliente quando necessário
     useEffect(() => {
         if (successMessage && !signalError && signalInfo && willLoginChange && !isUpdatingLogin && !loginUpdated) {
             updateClientLogin();
         }
     }, [successMessage, signalError, signalInfo, willLoginChange, isUpdatingLogin, loginUpdated, updateClientLogin]);
 
-    // Monitorar e corrigir possíveis erros de lottie
-    useEffect(() => {
-        // Capturar possíveis erros de Lottie relacionados a ImageData
-        const handleError = (error: ErrorEvent) => {
-            if (error.message && error.message.includes('ImageData')) {
-                console.warn('Detected ImageData error with Lottie animation:', error.message);
-                setLottieError(true);
-            }
-        };
-
-        window.addEventListener('error', handleError);
-        return () => {
-            window.removeEventListener('error', handleError);
-        };
-    }, []);
-
-    useEffect(() => {
-        const handleLowSignal = async () => {
-            // Verificar se já excluímos esta ONU para evitar múltiplas requisições
-            if (hasDeletedOnuRef.current) {
-                return;
-            }
-
-            if (signalInfo && onDeleteOnu && selectedOnu) {
-                // Verificar se o sinal está abaixo do limiar
-                if (signalInfo.status === "critical" || signalInfo.rxPower <= CRITICAL_SIGNAL_THRESHOLD) {
-                    try {
-                        setIsDeletingOnu(true);
-                        // Marcar que já começamos a operação de exclusão
-                        hasDeletedOnuRef.current = true;
-
-                        await onDeleteOnu({
-                            sn: selectedOnu.sn,
-                            oltId: selectedOnu.oltIp,
-                            ponId: selectedOnu.ponId,
-                            serverType
-                        });
-
-                        setSignalError("A ONU não foi autorizada porque o sinal está fora do padrão aceitável.");
-                    } catch (error) {
-                        console.error("Erro ao excluir ONU:", error);
-                        setSignalError("A ONU foi autorizada, mas o sinal está fora do padrão aceitável.");
-                        // Se houve erro, permitir nova tentativa
-                        hasDeletedOnuRef.current = false;
-                    } finally {
-                        setIsDeletingOnu(false);
-                    }
-                }
-            }
-        };
-
-        if (signalInfo) {
-            handleLowSignal();
-        }
-    }, [signalInfo, onDeleteOnu, selectedOnu, serverType]);
-
-    // Resetar as flags quando um novo ONU for selecionado
-    useEffect(() => {
-        hasDeletedOnuRef.current = false;
-        hasUpdatedLoginRef.current = false;
-        setLoginUpdated(false);
-    }, [selectedOnu]);
-
     // Verificar login PPPoE quando mudar de IPoE para PPPoE
     useEffect(() => {
         const verifyLoginAvailability = async () => {
-            // Só verificar se for login IPoE mudando para PPPoE e ainda não temos suffix definido
             if (isCurrentLoginIPoE &&
                 connectionType === "PPPoE" &&
                 selectedLogin?.base &&
                 selectedLogin?.id_cliente &&
                 !loginSuffix &&
                 checkExistingLogins) {
-
                 setIsCheckingLogin(true);
                 try {
-                    // Usar a função do hook para verificar a disponibilidade do login
                     await checkExistingLogins(selectedLogin.base, selectedLogin.id_cliente);
-                } catch (error) {
-                    console.error("Erro ao verificar disponibilidade do login:", error);
+                } catch {
+                    // erro já tratado
                 } finally {
                     setIsCheckingLogin(false);
                 }
             }
         };
-
         verifyLoginAvailability();
-    }, [isCurrentLoginIPoE, connectionType, selectedLogin, loginSuffix, checkExistingLogins]);
-
-    // Renderiza o componente Lottie com tratamento de erro
-    const renderLottie = (src: string, className?: string) => {
-        if (lottieError) {
-            // Fallback para quando há erro de ImageData
-            return (
-                <div className={`flex items-center justify-center ${className || 'h-32 w-32'}`}>
-                    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-                </div>
-            );
-        }
-
-        try {
-            return (
-                <DotLottieReact
-                    src={src}
-                    loop
-                    autoplay
-                    renderConfig={{
-                        autoResize: true,
-                    }}
-                />
-            );
-        } catch (err) {
-            console.error("Erro ao renderizar Lottie:", err);
-            return (
-                <div className={`flex items-center justify-center ${className || 'h-32 w-32'}`}>
-                    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-                </div>
-            );
-        }
-    };
+    }, [isCurrentLoginIPoE, connectionType, selectedLogin, loginSuffix, checkExistingLogins, setIsCheckingLogin]);
 
     return (
         <Card className="w-full max-w-2xl mx-auto">
@@ -406,7 +158,7 @@ export function Step4ConfirmAuthorize({
                             {isVerifyingSignal && !signalInfo ? (
                                 <div className="p-4 rounded-lg text-center mb-6" ref={containerRef}>
                                     <div className="w-full h-96 mx-auto">
-                                        {renderLottie("https://lottie.host/fdba93bd-e1bc-49ad-8e6a-7689c5383287/hJLyE6GITV.lottie")}
+                                        <LottieWrapper src="https://lottie.host/fdba93bd-e1bc-49ad-8e6a-7689c5383287/hJLyE6GITV.lottie" lottieError={lottieError} />
                                     </div>
                                     <p className="text-xl font-medium mt-4 text-blue-700">ONU autorizada, verificando sinal...</p>
                                     <p className="text-sm mt-2 text-gray-500">
@@ -416,7 +168,7 @@ export function Step4ConfirmAuthorize({
                             ) : successMessage && !signalError && (
                                 <div className="bg-green-50 p-6 rounded-lg text-center mb-10">
                                     <div className="h-32 w-32 mx-auto mb-4">
-                                        {renderLottie("https://lottie.host/836ceddd-aa49-47ab-9ba6-a74c6d4517c5/AezGcQ8fos.lottie")}
+                                        <LottieWrapper src="https://lottie.host/836ceddd-aa49-47ab-9ba6-a74c6d4517c5/AezGcQ8fos.lottie" lottieError={lottieError} />
                                     </div>
                                     <p className="text-lg font-medium text-green-700">{successMessage}</p>
                                 </div>
@@ -425,7 +177,7 @@ export function Step4ConfirmAuthorize({
                             {signalError && (
                                 <div className="p-4 rounded-lg bg-red-50 border border-red-200 mb-6">
                                     <div className="h-32 w-32 mx-auto mb-4">
-                                        {renderLottie("https://lottie.host/96119506-44b2-4399-890b-5a41e67b70ce/rN9yy2iGzw.lottie")}
+                                        <LottieWrapper src="https://lottie.host/96119506-44b2-4399-890b-5a41e67b70ce/rN9yy2iGzw.lottie" lottieError={lottieError} />
                                     </div>
                                     <div className="flex items-center justify-center gap-2 mb-2">
                                         <AlertTriangle className="h-5 w-5 text-red-500" />
@@ -453,103 +205,18 @@ export function Step4ConfirmAuthorize({
 
                             {signalInfo && !signalError && (
                                 <>
-                                    <div className="p-4 rounded-lg bg-primary/5 border border-primary/20 mb-6">
-                                        <h3 className="font-medium text-center mb-4">Informações do Sinal</h3>
-                                        <div className="space-y-3">
-                                            <div className="flex justify-between items-center">
-                                                <span>Sinal OLT→ONU:</span>
-                                                <div className="flex items-center gap-2">
-                                                    <span className={`font-semibold 
-                                                    ${signalInfo.rxPower > OPTIMAL_SIGNAL_THRESHOLD ? "text-green-600" :
-                                                            signalInfo.rxPower > ACCEPTABLE_SIGNAL_THRESHOLD ? "text-amber-600" : "text-red-600"}`}>
-                                                        {signalInfo.rxPower.toFixed(2)} dBm
-                                                    </span>
-                                                    <div className={`w-3 h-3 rounded-full 
-                                                    ${signalInfo.rxPower > OPTIMAL_SIGNAL_THRESHOLD ? "bg-green-600" :
-                                                            signalInfo.rxPower > ACCEPTABLE_SIGNAL_THRESHOLD ? "bg-amber-600" : "bg-red-600"}`} />
-                                                </div>
-                                            </div>
-                                            <div className="flex justify-between items-center">
-                                                <span>Sinal ONU→OLT:</span>
-                                                <div className="flex items-center gap-2">
-                                                    <span className={`font-semibold 
-                                                    ${signalInfo.p_rx_power > OPTIMAL_SIGNAL_THRESHOLD ? "text-green-600" :
-                                                            signalInfo.p_rx_power > ACCEPTABLE_SIGNAL_THRESHOLD ? "text-amber-600" : "text-red-600"}`}>
-                                                        {signalInfo.p_rx_power.toFixed(2)} dBm
-                                                    </span>
-                                                    <div className={`w-3 h-3 rounded-full 
-                                                    ${signalInfo.p_rx_power > OPTIMAL_SIGNAL_THRESHOLD ? "bg-green-600" :
-                                                            signalInfo.p_rx_power > ACCEPTABLE_SIGNAL_THRESHOLD ? "bg-amber-600" : "bg-red-600"}`} />
-                                                </div>
-                                            </div>
-                                            <div className="flex justify-between items-center">
-                                                <span>Status Geral:</span>
-                                                <div className="flex items-center gap-2">
-                                                    <span className={`font-semibold 
-                                                ${signalInfo.status === "optimal" ? "text-green-600" :
-                                                            signalInfo.status === "acceptable" ? "text-amber-600" : "text-red-600"}`}>
-                                                        {signalInfo.status === "optimal" ? "Ótimo" :
-                                                            signalInfo.status === "acceptable" ? "Aceitável" : "Crítico"}
-                                                    </span>
-                                                    <div className={`w-3 h-3 rounded-full 
-                                                ${signalInfo.status === "optimal" ? "bg-green-600" :
-                                                            signalInfo.status === "acceptable" ? "bg-amber-600" : "bg-red-600"}`} />
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
+                                    <SignalInfoCard signalInfo={signalInfo} />
 
-                                    {/* Seção para mostrar as credenciais da ONU */}
                                     {selectedLogin && loginForOnu && (
                                         <>
                                             {isCurrentLoginIPoE && connectionType === "PPPoE" ? (
-                                                <>
-                                                    <div className="mb-6 p-4 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
-                                                        <h3 className="font-medium text-blue-800 dark:text-blue-300 text-center mb-3">
-                                                            Credenciais para Configuração
-                                                        </h3>
-                                                        <div className="grid grid-cols-2 gap-3">
-                                                            <div className="text-blue-700 dark:text-blue-400 font-medium">Login:</div>
-                                                            <div className="font-mono font-semibold text-blue-700 dark:text-blue-300">
-                                                                {loginForOnu}
-                                                            </div>
-                                                            <div className="text-blue-700 dark:text-blue-400 font-medium">Senha:</div>
-                                                            <div className="font-mono font-semibold text-blue-700 dark:text-blue-300">
-                                                                {selectedLogin.id_cliente}
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </>
-                                            ) : !isCurrentLoginIPoE && connectionType === "PPPoE" ? (
-                                                <>
-                                                    <div className="mb-6 p-4 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
-                                                        <h3 className="font-medium text-blue-800 dark:text-blue-300 text-center mb-3">
-                                                            Credenciais para Configuração
-                                                        </h3>
-                                                        <div className="grid grid-cols-2 gap-3">
-                                                            <div className="text-blue-700 dark:text-blue-400 font-medium">Login:</div>
-                                                            <div className="font-mono font-semibold text-blue-700 dark:text-blue-300">
-                                                                {loginForOnu}
-                                                            </div>
-                                                            <div className="text-blue-700 dark:text-blue-400 font-medium">Senha:</div>
-                                                            <div className="font-mono font-semibold text-blue-700 dark:text-blue-300">
-                                                                {selectedLogin.id_cliente}
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </>
-                                            ) : (
-                                                <></>
-                                            )}
-
-                                            {willLoginChange && (
-                                                <div className="mb-6 p-4 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
-                                                    <div className="text-sm bg-blue-100 dark:bg-blue-800/50 p-2 rounded">
-                                                        <p className="flex items-center text-blue-700 dark:text-blue-300">
-                                                            <AlertTriangle className="h-4 w-4 mr-1 flex-shrink-0" />
-                                                            <span>
-                                                                {isCurrentLoginIPoE && connectionType === "PPPoE" ? (
-                                                                    isCheckingLogin ? (
+                                                <CredentialsCard login={loginForOnu} senha={selectedLogin.id_cliente} connectionType={connectionType} color="blue">
+                                                    {willLoginChange && (
+                                                        <div className="text-sm bg-blue-100 dark:bg-blue-800/50 p-2 rounded mt-3">
+                                                            <p className="flex items-center text-blue-700 dark:text-blue-300">
+                                                                <AlertTriangle className="h-4 w-4 mr-1 flex-shrink-0" />
+                                                                <span>
+                                                                    {isCheckingLogin ? (
                                                                         <>
                                                                             <Loader2 className="h-3 w-3 mr-1 animate-spin inline" />
                                                                             Verificando disponibilidade do login PPPoE...
@@ -559,25 +226,51 @@ export function Step4ConfirmAuthorize({
                                                                             O tipo de conexão foi alterado de IPoE para PPPoE. O login seguirá o padrão da empresa.
                                                                             {loginSuffix && <span className="ml-1 block">(com sufixo <span className="font-mono">_{loginSuffix}</span> para evitar duplicação)</span>}
                                                                         </>
-                                                                    )
-                                                                ) : isCurrentLoginIPoE && connectionType === "IPoE" ? (
-                                                                    "As informações do login IPoE serão atualizadas com os dados da nova ONU."
-                                                                ) : !isCurrentLoginIPoE && connectionType === "IPoE" ? (
-                                                                    <>
-                                                                        O tipo de conexão foi alterado de PPPoE para IPoE. Um novo login IPoE será gerado automaticamente.
-                                                                        <div className="mt-1">
-                                                                            Login original PPPoE: <span className="font-medium font-mono">{selectedLogin.login}</span>
-                                                                        </div>
-                                                                    </>
-                                                                ) : (
-                                                                    "O login será ajustado para o padrão da empresa."
-                                                                )}
-                                                                {loginUpdated && <span className="ml-1 text-green-600 font-medium">(Atualizado)</span>}
-                                                                {isUpdatingLogin && <span className="ml-1 text-blue-600 font-medium">(Atualizando...)</span>}
-                                                            </span>
-                                                        </p>
-                                                    </div>
-                                                </div>
+                                                                    )}
+                                                                </span>
+                                                            </p>
+                                                        </div>
+                                                    )}
+                                                </CredentialsCard>
+                                            ) : isCurrentLoginIPoE ? (
+                                                <CredentialsCard login={loginForOnu} senha={selectedLogin.id_cliente} connectionType={connectionType} color="blue">
+                                                    {willLoginChange && (
+                                                        <div className="text-sm bg-blue-100 dark:bg-blue-800/50 p-2 rounded mt-3">
+                                                            <p className="flex items-center text-blue-700 dark:text-blue-300">
+                                                                <AlertTriangle className="h-4 w-4 mr-1 flex-shrink-0" />
+                                                                <span>
+                                                                    As informações do login IPoE serão atualizadas com os dados da nova ONU.
+                                                                </span>
+                                                            </p>
+                                                        </div>
+                                                    )}
+                                                </CredentialsCard>
+                                            ) : connectionType === "IPoE" ? (
+                                                <CredentialsCard login={loginForOnu} senha={selectedLogin.id_cliente} connectionType={connectionType} color="blue">
+                                                    {willLoginChange && (
+                                                        <div className="text-sm bg-blue-100 dark:bg-blue-800/50 p-2 rounded mt-3">
+                                                            <p className="flex items-center text-blue-700 dark:text-blue-300">
+                                                                <AlertTriangle className="h-4 w-4 mr-1 flex-shrink-0" />
+                                                                <span>
+                                                                    O tipo de conexão foi alterado de PPPoE para IPoE. Um novo login IPoE foi gerado automaticamente.
+                                                                </span>
+                                                            </p>
+                                                        </div>
+                                                    )}
+                                                </CredentialsCard>
+                                            ) : (
+                                                <CredentialsCard login={loginForOnu} senha={selectedLogin.id_cliente} connectionType={connectionType} color="blue">
+                                                    {willLoginChange && (
+                                                        <div className="text-sm bg-blue-100 dark:bg-blue-800/50 p-2 rounded mt-3">
+                                                            <p className="flex items-center text-blue-700 dark:text-blue-300">
+                                                                <AlertTriangle className="h-4 w-4 mr-1 flex-shrink-0" />
+                                                                <span>
+                                                                    O login será ajustado para o padrão da empresa.
+                                                                </span>
+                                                            </p>
+                                                        </div>
+                                                    )}
+                                                </CredentialsCard>
                                             )}
                                         </>
                                     )}
@@ -594,11 +287,22 @@ export function Step4ConfirmAuthorize({
                                     </Button>
                                 ) : (
                                     <>
-                                        {!signalError && signalInfo && !isVerifyingSignal && (
+                                        {!signalError && signalInfo && !isVerifyingSignal && selectedLogin && selectedOnu && (
                                             <>
                                                 <Button
                                                     variant="outline"
-                                                    onClick={onCopyDetails}
+                                                    onClick={() => onCopyDetails({
+                                                        sn: selectedOnu.sn,
+                                                        olt: selectedOnu.oltName || selectedOnu.oltIp,
+                                                        slot: selectedOnu.ponId.split("-")[2] || "",
+                                                        pon: selectedOnu.ponId.split("-")[3] || "",
+                                                        base: BASE_MAPPING[selectedLogin.base || ""] || selectedLogin.base || "",
+                                                        login: loginForOnu,
+                                                        senha: selectedLogin.id_cliente,
+                                                        rxPower: signalInfo.rxPower.toFixed(2),
+                                                        p_rx_power: signalInfo.p_rx_power.toFixed(2),
+                                                        vlan: VLAN_MAPPING[connectionType],
+                                                    })}
                                                     className="flex items-center"
                                                 >
                                                     {copiedToClipboard ? (
@@ -690,9 +394,9 @@ export function Step4ConfirmAuthorize({
                                                                 {loginSuffix && <span className="ml-1 block">(com sufixo <span className="font-mono">_{loginSuffix}</span> para evitar duplicação)</span>}
                                                             </>
                                                         )
-                                                    ) : isCurrentLoginIPoE && connectionType === "IPoE" ? (
+                                                    ) : isCurrentLoginIPoE ? (
                                                         "As informações do login IPoE serão atualizadas com os dados da nova ONU."
-                                                    ) : !isCurrentLoginIPoE && connectionType === "IPoE" ? (
+                                                    ) : connectionType === "IPoE" ? (
                                                         <>
                                                             O tipo de conexão foi alterado de PPPoE para IPoE. Um novo login IPoE será gerado automaticamente.
                                                             <div className="mt-1">
@@ -728,7 +432,7 @@ export function Step4ConfirmAuthorize({
                                         {authorizingOnu === selectedOnu.sn ? (
                                             <>
                                                 <div className="mr-2 h-8 w-8">
-                                                    {renderLottie("https://lottie.host/fdba93bd-e1bc-49ad-8e6a-7689c5383287/hJLyE6GITV.lottie", "h-8 w-8")}
+                                                    <LottieWrapper src="https://lottie.host/fdba93bd-e1bc-49ad-8e6a-7689c5383287/hJLyE6GITV.lottie" lottieError={lottieError} className="h-8 w-8" />
                                                 </div>
                                                 Autorizando...
                                             </>
@@ -742,20 +446,7 @@ export function Step4ConfirmAuthorize({
                     </>
                 )}
             </CardContent>
-
-            {/* Toast */}
-            {toastMessage && (
-                <div className={`fixed bottom-4 right-4 px-6 py-3 rounded-lg text-white shadow-lg z-50 ${toastType === 'success' ? 'bg-green-500' : 'bg-red-500'}`}>
-                    <div className="flex items-center gap-2">
-                        {toastType === 'success' ? (
-                            <Check className="h-5 w-5" />
-                        ) : (
-                            <AlertTriangle className="h-5 w-5" />
-                        )}
-                        {toastMessage}
-                    </div>
-                </div>
-            )}
+            <Step4Toast toastMessage={toastMessage} toastType={toastType} />
         </Card>
     );
 } 

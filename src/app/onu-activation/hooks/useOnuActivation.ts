@@ -3,11 +3,11 @@ import { AuthorizationOnuRequest, ConnectionType, UnauthOnu, VLAN_MAPPING } from
 import { Login, OnuSignalInfo, RadiusSource } from "../types";
 import { useActivityLogStore } from "@/store/activity-log";
 import { getCurrentUser } from "@/lib/client-auth";
-import { ACCEPTABLE_SIGNAL_THRESHOLD, OPTIMAL_SIGNAL_THRESHOLD } from "@/lib/constants";
+import { ACCEPTABLE_SIGNAL_THRESHOLD, CRITICAL_SIGNAL_THRESHOLD } from "@/lib/constants";
 import { useOLTStore } from "@/store/olts";
 
 // Mapeamento de bases para códigos abreviados
-const BASE_MAPPING: Record<string, string> = {
+export const BASE_MAPPING: Record<string, string> = {
     "ixc.brasildigital.net.br": "BRD",
     "ixc.candeiasnet.com.br": "CDEY",
     "ixc.br364telecom.com.br": "BR364"
@@ -121,11 +121,6 @@ export function useOnuActivation() {
         return selectedLogin.login;
     };
 
-    // Função para verificar se o login é do tipo IPoE
-    const isIPoELogin = (autenticacao: "L" | "H" | "M" | "V" | "D" | "I" | "E") => {
-        return autenticacao === 'D';
-    };
-
     useEffect(() => {
         fetchUnauthorizedOnus();
     }, []);
@@ -202,12 +197,11 @@ export function useOnuActivation() {
                 let status: "optimal" | "acceptable" | "critical" = "optimal";
 
                 // Avaliamos com base no pior valor entre os dois
-                const worstSignal = Math.min(p_rx_power, rxPowerValue);
 
-                if (worstSignal < ACCEPTABLE_SIGNAL_THRESHOLD) {
+                if (p_rx_power < (CRITICAL_SIGNAL_THRESHOLD - 2) || rxPowerValue < CRITICAL_SIGNAL_THRESHOLD) {
                     status = "critical";
                     setShowSignalWarning(true);
-                } else if (worstSignal < OPTIMAL_SIGNAL_THRESHOLD) {
+                } else if (p_rx_power < (ACCEPTABLE_SIGNAL_THRESHOLD - 2) || rxPowerValue < ACCEPTABLE_SIGNAL_THRESHOLD) {
                     status = "acceptable";
                 }
 
@@ -373,52 +367,8 @@ export function useOnuActivation() {
         setShowSignalWarning(false);
     };
 
-    const copyOnuDetailsToClipboard = () => {
-        if (!selectedOnu) return;
-
-        // Extrair informações do OLT/PON
-        const oltInfo = selectedOnu.oltName?.split(':') || ['', ''];
-        const oltName = oltInfo[0] || selectedOnu.oltIp;
-        const ponParts = selectedOnu.ponId.includes('/') ? selectedOnu.ponId.split('/') : selectedOnu.ponId.split('-') || ['', ''];
-        const slot = ponParts[2];
-        const pon = ponParts[3];
-
-        // Obter o prefixo da base
-        const baseCode = BASE_MAPPING[selectedLogin?.base || ""] || "N/A";
-
-        // Determinar o login correto com base no tipo de conexão
-        let loginToUse = "";
-
-        // Se for IPoE, use o formato específico de IPoE
-        if (connectionType === "IPoE" && selectedLogin && isIPoELogin(selectedLogin.autenticacao)) {
-            // Encontrar a OLT correspondente pelo oltIp
-            const matchedOlt = olts.find(olt => olt.device_ip === selectedOnu.oltIp);
-
-            if (matchedOlt && matchedOlt.ipoe) {
-                // Formato IPoE: ipoe.slot.pon.sn
-                loginToUse = `${matchedOlt.ipoe.trim()}.${slot}.${pon}.${selectedOnu.sn}`;
-            } else {
-                // Fallback para o login existente se não conseguir formar o IPoE
-                loginToUse = selectedLogin.login;
-            }
-        } else {
-            // Para PPPoE, use a função normal de obtenção de login
-            loginToUse = getLoginForOnu();
-        }
-
-        // Criar texto com o mesmo formato do logText, adicionando informações de sinal e VLAN
-        const textToCopy = `LEMBRE DE HABILITAR O ACESSO REMOTO!
-•⁠  SN/MAC: ${selectedOnu.sn}
-•⁠  OLT: ${oltName} - ${selectedOnu.oltIp}
-•⁠  SLOT: ${slot}
-•⁠  PON: ${pon}
-•⁠  ⁠BASE: ${baseCode}
-•⁠  ⁠LOGIN: ${loginToUse}
-•⁠  ⁠SENHA: ${isIPoELogin(selectedLogin?.autenticacao || "L") ? "N/A" : selectedLogin?.id_cliente || "N/A"}
-•⁠  ⁠Sinal OLT→ONU: ${signalInfo ? signalInfo.rxPower.toFixed(2) : "N/A"} dBm
-•⁠  ⁠Sinal ONU→OLT: ${signalInfo ? signalInfo.p_rx_power.toFixed(2) : "N/A"} dBm
-•⁠  ⁠VLAN: ${VLAN_MAPPING[connectionType]}`;
-
+    const copyOnuDetailsToClipboard = (params: { sn: string; olt: string; slot: string; pon: string; base: string; login: string; senha: string; rxPower: string; p_rx_power: string; vlan: string }) => {
+        const textToCopy = `LEMBRE DE HABILITAR O ACESSO REMOTO!\n•⁠  SN/MAC: ${params.sn}\n•⁠  OLT: ${params.olt}\n•⁠  SLOT: ${params.slot}\n•⁠  PON: ${params.pon}\n•⁠  ⁠BASE: ${params.base}\n•⁠  ⁠LOGIN: ${params.login}\n•⁠  ⁠SENHA: ${params.senha}\n•⁠  ⁠Sinal OLT→ONU: ${params.rxPower} dBm\n•⁠  ⁠Sinal ONU→OLT: ${params.p_rx_power} dBm\n•⁠  ⁠VLAN: ${params.vlan}`;
         navigator.clipboard.writeText(textToCopy).then(() => {
             setCopiedToClipboard(true);
             setTimeout(() => setCopiedToClipboard(false), 2000);

@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 
-interface OLT {
+export interface OLT {
     device_id: string
     device_name: string
     device_type: string
