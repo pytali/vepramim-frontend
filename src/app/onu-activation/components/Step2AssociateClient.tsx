@@ -72,7 +72,7 @@ export function Step2AssociateClient({
 
                         <div className="space-y-3">
                             <Label htmlFor="searchQuery" className="font-medium">
-                                Buscar por ID de Cliente
+                                Buscar por ID de Cliente*
                             </Label>
                             <div className="flex space-x-2">
                                 <Input
@@ -194,12 +194,28 @@ export function Step2AssociateClient({
                             </Button>
                             <Button
                                 onClick={onNext}
+                                disabled={!selectedLogin}
                                 className="flex items-center"
                             >
                                 Próximo
                                 <ChevronRight className="ml-2 h-4 w-4" />
                             </Button>
                         </div>
+
+                        {!selectedLogin && (
+                            <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md text-center">
+                                <p className="text-blue-700 dark:text-blue-300 font-medium">Para continuar:</p>
+                                <p className="text-blue-600 dark:text-blue-400">
+                                    1. Digite o ID do cliente na caixa de busca acima
+                                </p>
+                                <p className="text-blue-600 dark:text-blue-400">
+                                    2. Clique no botão &quot;Buscar&quot;
+                                </p>
+                                <p className="text-blue-600 dark:text-blue-400">
+                                    3. Quando o cliente aparecer, o botão &quot;Próximo&quot; será liberado
+                                </p>
+                            </div>
+                        )}
                     </div>
                 )}
             </CardContent>
