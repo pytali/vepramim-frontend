@@ -5,7 +5,7 @@ import { useActivityLogStore } from "@/store/activity-log";
 import { getCurrentUser } from "@/lib/client-auth";
 import { ACCEPTABLE_SIGNAL_THRESHOLD, CRITICAL_SIGNAL_THRESHOLD } from "@/lib/constants";
 import { useOLTStore } from "@/store/olts";
-import { isStandardLogin, getStandardLogin, BASE_LOGIN_MAPPING, BASE_MAPPING } from "@/utils/activationUtils";
+import { isStandardLogin, getStandardLogin, BASE_LOGIN_MAPPING, BASE_MAPPING, normalizeLogin } from "@/utils/activationUtils";
 
 
 export function useOnuActivation() {
@@ -243,6 +243,9 @@ export function useOnuActivation() {
                 name: onuName,
                 vlan: VLAN_MAPPING[connectionType]
             };
+
+            payload.name = normalizeLogin(payload.name);
+
 
             const response = await fetch("/api/onu/authorize", {
                 method: "POST",

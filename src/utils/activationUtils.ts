@@ -78,3 +78,14 @@ export const normalizeToASCII = (str: string): string => {
         .normalize("NFD")
         .replace(/[\u0300-\u036f]/g, ""); // Remove diacríticos
 };
+
+export const normalizeLogin = (login: string): string => {
+    const SUBSTITUTIONS = ["-", ".", ":"]
+
+    for (const char of SUBSTITUTIONS) {
+        login = login.replaceAll(char, '');
+    }
+
+    return login.trim();
+};
+

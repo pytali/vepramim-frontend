@@ -73,6 +73,8 @@ export function Step3ConfigureOnu({
                     // Formato: {baseCode} - {login} - {endereco} + {numero}
                     const rawName = `${baseCode} - ${formattedLogin} - ${data.endereco} ${data.numero}`;
 
+
+
                     // Normalizar o nome removendo acentuação e caracteres especiais
                     const generatedName = normalizeToASCII(rawName);
 
