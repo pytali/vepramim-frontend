@@ -131,7 +131,7 @@ export function Step4ConfirmAuthorize(props: Step4Props) {
                                     </div>
                                     <p className="text-xl font-medium mt-4 text-blue-700">ONU autorizada, verificando sinal...</p>
                                     <p className="text-sm mt-2 text-gray-500">
-                                        Este processo leva aproximadamente 40 segundos para ser concluído.
+                                        Este processo leva aproximadamente 60 segundos para ser concluído.
                                     </p>
                                 </div>
                             ) : successMessage && !signalError && (
