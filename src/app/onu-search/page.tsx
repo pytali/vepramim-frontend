@@ -763,7 +763,7 @@ Modelo ONU/ONT: ${data.onu_type || ''}`
         <button
           onClick={handleCopyData}
           disabled={isCopying}
-          className={`fixed bottom-8 right-8 bg-gray-900 hover:bg-gray-800 text-white dark:bg-white/10 dark:hover:bg-white/20 dark:text-white dark:border dark:border-white/20 rounded-full p-4 shadow-lg flex items-center gap-2 transition-transform duration-200 ${isCopying ? 'scale-95' : ''
+          className={`fixed bottom-8 right-8 bg-gray-900 hover:bg-gray-800 text-white dark:bg-white/10 dark:hover:bg-white/20 dark:text-white dark:border dark:border-white/20 rounded-full p-4 shadow-lg flex items-center gap-2 transition-transform duration-200 z-50 ${isCopying ? 'scale-95' : ''
             }`}
         >
           <svg
