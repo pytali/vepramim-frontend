@@ -66,6 +66,28 @@ export async function GET(
     // Parse the response
     const data = await response.json()
 
+    if (data.data && data.data[0]?.onu_signal) {
+      const onuSignal = data.data[0].onu_signal;
+      // Avaliar o status do sinal
+      const rxPowerValue = parseFloat(onuSignal.rx_power);
+
+      if (rxPowerValue <= -30) {
+
+        console.info("Sinal ruim, tentando novamente...")
+
+        await new Promise(resolve => setTimeout(resolve, 10000));
+        // Call the actual API endpoint
+        const response = await fetch(`${API_BASE_URL}/operations/api/v1/onu/${sn}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        })
+
+        const data = await response.json()
+        return NextResponse.json(data)
+      }
+    }
+
     // Return the ONU data
     return NextResponse.json(data)
   } catch (error) {
