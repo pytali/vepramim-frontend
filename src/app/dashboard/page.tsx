@@ -123,7 +123,7 @@ export default function Dashboard() {
                 <Search className="h-4 w-4 mr-2" />
                 Pesquisar ONU
               </Button>
-              <RoleCheck requiredRoles={[Role.ADMIN, Role.SUPPORT, Role.TECHNICIAN]}>
+              <RoleCheck requiredRoles={[Role.ADMIN, Role.SUPPORT, Role.TECHNICIAN, Role.MANAGER]}>
                 <Button
                   className="bg-gray-900 hover:bg-gray-800 text-white dark:bg-white/10 dark:hover:bg-white/20 dark:text-white dark:border dark:border-white/20 rounded-xl"
                   onClick={() => router.push("/onu-activation")}
@@ -136,7 +136,7 @@ export default function Dashboard() {
             <p className="text-gray-600 dark:text-gray-400 text-sm">Gerenciamento de ONUs</p>
           </div>
 
-          <RoleCheck requiredRoles={[Role.ADMIN, Role.SUPPORT]}>
+          <RoleCheck requiredRoles={[Role.ADMIN, Role.SUPPORT, Role.MANAGER]}>
             <div className="glass-card rounded-2xl p-6 transition-all duration-300 hover:translate-y-[-5px]">
               <div className="flex items-center justify-between mb-6">
                 <h3 className="text-xl font-light text-gray-900 dark:text-white">Atendimentos</h3>

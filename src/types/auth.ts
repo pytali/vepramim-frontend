@@ -5,7 +5,7 @@ export enum Role {
     ADMIN = "grpNOC3",
     USER = "USER",
     TECHNICIAN = "grpTecnicos",
-    MANAGER = "MANAGER",
+    MANAGER = "grpNOC2",
     SUPERVISOR = "SUPERVISOR",
     SUPPORT = "grpNOC1",
     // Adicione outras roles conforme necessário

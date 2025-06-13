@@ -28,12 +28,12 @@ const protectedRoutes: RouteConfig[] = [
     },
     {
         path: "/onu-activation",
-        requiredRoles: [Role.ADMIN, Role.SUPPORT, Role.TECHNICIAN]
+        requiredRoles: [Role.ADMIN, Role.SUPPORT, Role.TECHNICIAN, Role.MANAGER]
 
     },
     {
         path: "/atendimentos",
-        requiredRoles: [Role.ADMIN, Role.SUPPORT]
+        requiredRoles: [Role.ADMIN, Role.SUPPORT, Role.MANAGER]
     }
 ]
 
