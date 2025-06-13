@@ -80,7 +80,7 @@ export const normalizeToASCII = (str: string): string => {
 };
 
 export const normalizeLogin = (login: string): string => {
-    const SUBSTITUTIONS = ["-", ".", ":"]
+    const SUBSTITUTIONS = [".", ":"]
 
     for (const char of SUBSTITUTIONS) {
         login = login.replaceAll(char, '');
